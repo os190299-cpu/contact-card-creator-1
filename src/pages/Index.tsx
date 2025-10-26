@@ -175,6 +175,15 @@ export default function Index() {
           onDragEnd={handleDragEnd}
         />
 
+        <div className="mt-16 pb-8 text-center">
+          <button
+            onClick={() => setIsDisclaimerOpen(true)}
+            className="text-xs text-gray-600 hover:text-gray-800 underline opacity-60 hover:opacity-100 transition-opacity"
+          >
+            Отказ от ответственности
+          </button>
+        </div>
+
 
 
         <EditContactDialog
@@ -238,13 +247,7 @@ export default function Index() {
         </Dialog>
       </div>
 
-      <button
-        onClick={() => setIsDisclaimerOpen(true)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-2xl flex items-center justify-center transition-all hover:scale-110"
-        title="Отказ от ответственности"
-      >
-        <Icon name="Info" size={24} />
-      </button>
+
     </div>
   );
 }
