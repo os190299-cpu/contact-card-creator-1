@@ -181,19 +181,29 @@ export default function Index() {
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    console.log('handleDragEnd called', event);
     const { active, over } = event;
-    if (!over || active.id === over.id) return;
+    if (!over || active.id === over.id) {
+      console.log('Drag cancelled or same position');
+      return;
+    }
 
     const oldIndex = contacts.findIndex((c) => c.id === active.id);
     const newIndex = contacts.findIndex((c) => c.id === over.id);
+    console.log('Moving from', oldIndex, 'to', newIndex);
     const newContacts = arrayMove(contacts, oldIndex, newIndex);
     setContacts(newContacts);
 
-    if (!authToken) return;
+    if (!authToken) {
+      console.log('No authToken, skipping server update');
+      return;
+    }
 
+    console.log('Calling updateContactsOrder with authToken:', authToken);
     try {
       await api.updateContactsOrder(newContacts, authToken);
     } catch (error) {
+      console.error('Error updating order, reloading:', error);
       await loadContacts();
     }
   };
