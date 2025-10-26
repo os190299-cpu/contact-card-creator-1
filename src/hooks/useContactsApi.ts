@@ -10,10 +10,21 @@ export function useContactsApi() {
 
   const fetchContacts = async (): Promise<Contact[]> => {
     try {
-      const res = await fetch(`${API_URL}?action=get-contacts`);
+      const res = await fetch(`${API_URL}?action=get-contacts`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      
       const data = await res.json();
       return data.contacts || [];
     } catch (error) {
+      console.error('Fetch error:', error);
       toast({ title: 'Ошибка', description: 'Не удалось загрузить контакты', variant: 'destructive' });
       return [];
     }
