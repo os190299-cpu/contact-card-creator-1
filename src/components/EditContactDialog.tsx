@@ -5,7 +5,6 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Icon from '@/components/ui/icon';
-import { useState, useRef } from 'react';
 
 export interface Contact {
   id: number;
@@ -32,51 +31,10 @@ export default function EditContactDialog({
   onContactChange,
   onSave
 }: EditContactDialogProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   if (!contact) return null;
 
   const getInitials = () => {
     return contact.title.split(' ').map(word => word[0]).join('').toUpperCase().slice(0, 2);
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      alert('Пожалуйста, выберите изображение');
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      alert('Размер файла не должен превышать 5 МБ');
-      return;
-    }
-
-    setIsUploading(true);
-
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('https://api.poehali.dev/upload', {
-        method: 'POST',
-        body: formData
-      });
-
-      if (!response.ok) {
-        throw new Error('Ошибка загрузки');
-      }
-
-      const data = await response.json();
-      onContactChange({ ...contact, avatar_url: data.url });
-    } catch (error) {
-      alert('Не удалось загрузить изображение');
-    } finally {
-      setIsUploading(false);
-    }
   };
 
   return (
@@ -95,36 +53,17 @@ export default function EditContactDialog({
                 {getInitials()}
               </AvatarFallback>
             </Avatar>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleFileChange}
-              className="hidden"
+          </div>
+
+          <div>
+            <Label htmlFor="edit-avatar-url">URL фото аватара (необязательно)</Label>
+            <Input 
+              id="edit-avatar-url"
+              value={contact.avatar_url || ''}
+              onChange={(e) => onContactChange({ ...contact, avatar_url: e.target.value || null })}
+              placeholder="https://example.com/avatar.jpg"
             />
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={isUploading}
-              >
-                <Icon name="Upload" className="mr-2" size={16} />
-                {isUploading ? 'Загрузка...' : 'Загрузить фото'}
-              </Button>
-              {contact.avatar_url && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => onContactChange({ ...contact, avatar_url: null })}
-                >
-                  <Icon name="Trash2" className="mr-2" size={16} />
-                  Удалить
-                </Button>
-              )}
-            </div>
+            <p className="text-sm text-gray-500 mt-1">Вставьте ссылку на изображение из интернета</p>
           </div>
 
           <div>
