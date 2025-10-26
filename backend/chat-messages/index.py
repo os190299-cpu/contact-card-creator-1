@@ -1,8 +1,8 @@
 '''
-Business: Отправка и получение сообщений чата
-Args: event - dict с httpMethod, body, headers
+Business: Отправка, получение и удаление сообщений чата
+Args: event - dict с httpMethod, body, headers, queryStringParameters
       context - object с атрибутами: request_id, function_name
-Returns: HTTP response dict со списком сообщений или статусом отправки
+Returns: HTTP response dict со списком сообщений или статусом операции
 '''
 
 import json
@@ -10,13 +10,14 @@ import os
 import hashlib
 import hmac
 import psycopg2
+import jwt as pyjwt
 from typing import Dict, Any, Optional, List
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
 JWT_SECRET = os.environ.get('JWT_SECRET', 'default-secret-key')
 SCHEMA = 't_p70382350_contact_card_creator'
 
-def verify_token(token: str) -> Optional[Dict[str, Any]]:
+def verify_chat_token(token: str) -> Optional[Dict[str, Any]]:
     try:
         payload, signature = token.rsplit('.', 1)
         expected_signature = hmac.new(
@@ -29,7 +30,16 @@ def verify_token(token: str) -> Optional[Dict[str, Any]]:
             return None
         
         user_id, username, timestamp = payload.split(':')
-        return {'user_id': int(user_id), 'username': username}
+        return {'user_id': int(user_id), 'username': username, 'role': 'chat_user'}
+    except:
+        return None
+
+def verify_admin_token(token: str) -> Optional[Dict[str, Any]]:
+    try:
+        decoded = pyjwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        if decoded.get('role') == 'superadmin':
+            return decoded
+        return None
     except:
         return None
 
@@ -41,7 +51,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {
                 'Access-Control-Allow-Origin': '*',
-                'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+                'Access-Control-Allow-Methods': 'GET, POST, DELETE, OPTIONS',
                 'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token',
                 'Access-Control-Max-Age': '86400'
             },
@@ -108,7 +118,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'body': json.dumps({'error': 'Требуется авторизация'})
                 }
             
-            user_data = verify_token(token)
+            user_data = verify_chat_token(token)
             if not user_data:
                 cur.close()
                 conn.close()
@@ -182,6 +192,80 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'Access-Control-Allow-Origin': '*'
                 },
                 'body': json.dumps({'success': True, 'message_id': message_id})
+            }
+        
+        elif method == 'DELETE':
+            headers = event.get('headers', {})
+            token = headers.get('X-Auth-Token') or headers.get('x-auth-token')
+            
+            if not token:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 401,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Требуется авторизация'})
+                }
+            
+            admin_data = verify_admin_token(token)
+            if not admin_data:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 403,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Доступ запрещён'})
+                }
+            
+            query_params = event.get('queryStringParameters', {}) or {}
+            message_id = query_params.get('message_id')
+            
+            if not message_id:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 400,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Укажите message_id'})
+                }
+            
+            cur.execute(
+                f'UPDATE "{SCHEMA}"."chat_messages" SET is_removed = true, removed_by = %s, removed_at = CURRENT_TIMESTAMP WHERE id = %s',
+                (admin_data.get('user_id'), int(message_id))
+            )
+            
+            if cur.rowcount == 0:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 404,
+                    'headers': {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    },
+                    'body': json.dumps({'error': 'Сообщение не найдено'})
+                }
+            
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Origin': '*'
+                },
+                'body': json.dumps({'success': True, 'message': 'Сообщение удалено'})
             }
         
         else:

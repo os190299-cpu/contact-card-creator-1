@@ -8,26 +8,17 @@ Returns: HTTP response dict со списком пользователей
 import json
 import os
 import psycopg2
-from typing import Dict, Any
+import jwt
+from typing import Dict, Any, Optional
 
 DATABASE_URL = os.environ.get('DATABASE_URL')
+JWT_SECRET = os.environ.get('JWT_SECRET', 'default-secret-key-change-me')
 SCHEMA = 't_p70382350_contact_card_creator'
 
 def verify_admin(token: str) -> bool:
     try:
-        conn = psycopg2.connect(DATABASE_URL)
-        cur = conn.cursor()
-        
-        cur.execute(
-            f'SELECT role FROM "{SCHEMA}"."users" WHERE token = %s',
-            (token,)
-        )
-        result = cur.fetchone()
-        
-        cur.close()
-        conn.close()
-        
-        return result and result[0] == 'superadmin'
+        decoded = jwt.decode(token, JWT_SECRET, algorithms=['HS256'])
+        return decoded.get('role') == 'superadmin'
     except:
         return False
 
