@@ -11,9 +11,6 @@ import ContactsList from '@/components/ContactsList';
 import EditContactDialog from '@/components/EditContactDialog';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import PageSettingsDialog from '@/components/PageSettingsDialog';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import Icon from '@/components/ui/icon';
 
 export default function Index() {
   const navigate = useNavigate();
@@ -31,7 +28,6 @@ export default function Index() {
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
   const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [isDisclaimerOpen, setIsDisclaimerOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const { toast } = useToast();
@@ -175,15 +171,6 @@ export default function Index() {
           onDragEnd={handleDragEnd}
         />
 
-        <div className="mt-16 pb-8 text-center">
-          <button
-            onClick={() => setIsDisclaimerOpen(true)}
-            className="text-xs text-gray-600 hover:text-gray-800 underline opacity-60 hover:opacity-100 transition-opacity"
-          >
-            Отказ от ответственности
-          </button>
-        </div>
-
 
 
         <EditContactDialog
@@ -211,43 +198,7 @@ export default function Index() {
           onSettingsChange={setPageSettings}
           onSave={handleSaveSettings}
         />
-
-        <Dialog open={isDisclaimerOpen} onOpenChange={setIsDisclaimerOpen}>
-          <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-bold">Отказ от ответственности</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 text-sm leading-relaxed">
-              <div>
-                <h3 className="font-bold text-lg mb-2">1. Цель ресурса</h3>
-                <p className="text-gray-700">
-                  Данный сайт создан исключительно в целях общественного информирования и повышения осведомлённости о рисках, связанных с незаконным оборотом наркотических веществ. Сайт не предназначен и не используется для содействия, организации или совершения противоправной деятельности.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">2. Источники и точность</h3>
-                <p className="text-gray-700">
-                  Информация (включая юзернеймы, описания и публичные ссылки) собирается из общедоступных источников. Мы не гарантируем полноту, точность, достоверность или актуальность этих данных. Любые утверждения о противоправной деятельности основаны на найденных в публичном пространстве материалах и помечены как «не подтверждённые», если фактическая проверка отсутствует.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">3. Ограничение ответственности</h3>
-                <p className="text-gray-700">
-                  Владельцы и администраторы сайта не несут ответственности за любые убытки, юридические последствия или иные действия, возникшие в результате использования информации, размещённой на сайте. Использование материалов сайта для совершения противоправных действий запрещено.
-                </p>
-              </div>
-              <div>
-                <h3 className="font-bold text-lg mb-2">4. Личные данные и репутация</h3>
-                <p className="text-gray-700">
-                  Если вы считаете, что опубликованная информация содержит ваши персональные данные, ложна, порочит честь и достоинство или нарушает иные права — отправьте запрос на удаление/исправление. Мы рассматриваем обращения и можем удалить или пометить сомнительную информацию после проверки.
-                </p>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
-
-
     </div>
   );
 }
