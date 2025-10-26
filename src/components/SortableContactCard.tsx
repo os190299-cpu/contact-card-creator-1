@@ -46,11 +46,7 @@ export default function SortableContactCard({
   };
 
   const getAvatarUrl = () => {
-    if (contact.avatar_url) return contact.avatar_url;
-    if (contact.telegram_username) {
-      return `https://t.me/i/userpic/320/${contact.telegram_username}.jpg`;
-    }
-    return null;
+    return contact.avatar_url || null;
   };
 
   const getInitials = () => {
