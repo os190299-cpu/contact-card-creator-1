@@ -236,18 +236,18 @@ export default function Index() {
             </div>
           </DialogContent>
         </Dialog>
+      </div>
 
-        <div className="fixed bottom-4 right-4">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsDisclaimerOpen(true)}
-            className="bg-white/80 backdrop-blur-sm hover:bg-white shadow-lg"
-          >
-            <Icon name="Info" size={16} className="mr-2" />
-            Отказ от ответственности
-          </Button>
-        </div>
+      <div className="fixed bottom-4 right-4 z-50">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setIsDisclaimerOpen(true)}
+          className="bg-white/90 backdrop-blur-sm hover:bg-white shadow-lg"
+        >
+          <Icon name="Info" size={16} className="mr-2" />
+          Отказ от ответственности
+        </Button>
       </div>
     </div>
   );
