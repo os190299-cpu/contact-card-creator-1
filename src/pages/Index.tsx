@@ -1,204 +1,121 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useToast } from '@/hooks/use-toast';
-import { DragEndEvent } from '@dnd-kit/core';
-import { arrayMove } from '@dnd-kit/sortable';
-import { Contact } from '@/components/EditContactDialog';
-import { PageSettings } from '@/components/PageSettingsDialog';
-import { useContactsApi } from '@/hooks/useContactsApi';
-import PageHeader from '@/components/PageHeader';
-import ContactsList from '@/components/ContactsList';
-import EditContactDialog from '@/components/EditContactDialog';
-import ChangePasswordDialog from '@/components/ChangePasswordDialog';
-import PageSettingsDialog from '@/components/PageSettingsDialog';
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import Icon from "@/components/ui/icon";
 
-export default function Index() {
-  const navigate = useNavigate();
+interface Contact {
+  id: number;
+  title: string;
+  username: string;
+  description: string;
+  icon: string;
+  color: string;
+  sort_order: number;
+}
+
+const Index = () => {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [pageSettings, setPageSettings] = useState<PageSettings>({ 
-    id: 1, 
-    main_title: 'Мои контакты', 
-    main_description: 'Свяжитесь со мной в Telegram', 
-    background_image_url: null 
-  });
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
-  const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('user_role'));
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingContact, setEditingContact] = useState<Contact | null>(null);
-  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
-  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
-  const [oldPassword, setOldPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const { toast } = useToast();
-  const api = useContactsApi();
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadContacts();
-    loadPageSettings();
-    if (authToken) {
-      setIsAdminMode(true);
-      const savedRole = localStorage.getItem('user_role');
-      if (savedRole) {
-        setUserRole(savedRole);
-      }
-    }
+    fetchContacts();
   }, []);
 
-  const loadContacts = async () => {
-    const data = await api.fetchContacts();
-    setContacts(data);
-  };
-
-  const loadPageSettings = async () => {
-    const data = await api.fetchPageSettings();
-    if (data) {
-      setPageSettings(data);
-    }
-  };
-
-
-
-  const handleLogout = () => {
-    setAuthToken(null);
-    setUserRole(null);
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_role');
-    setIsAdminMode(false);
-    toast({ title: 'Выход', description: 'Вы вышли из системы' });
-  };
-
-  const handleSaveContact = async () => {
-    if (!editingContact || !authToken) return;
-    const success = await api.updateContact(editingContact, authToken);
-    if (success) {
-      await loadContacts();
-      setIsEditDialogOpen(false);
-      setEditingContact(null);
-    }
-  };
-
-  const handleAddContact = async () => {
-    if (!authToken) return;
-    const newContact = {
-      title: 'Новый контакт',
-      description: 'Описание',
-      telegram_link: 'https://t.me/username',
-      display_order: contacts.length + 1
-    };
-    const success = await api.addContact(newContact, authToken);
-    if (success) {
-      await loadContacts();
-    }
-  };
-
-  const handleDeleteContact = async (id: number) => {
-    if (!authToken) return;
-    const success = await api.deleteContact(id, authToken);
-    if (success) {
-      await loadContacts();
-    }
-  };
-
-  const handleChangePassword = async () => {
-    if (!authToken) return;
-    const success = await api.changePassword(oldPassword, newPassword, authToken);
-    if (success) {
-      setIsPasswordDialogOpen(false);
-      setOldPassword('');
-      setNewPassword('');
-    }
-  };
-
-  const handleSaveSettings = async () => {
-    if (!authToken) return;
-    const success = await api.updateSettings(pageSettings, authToken);
-    if (success) {
-      setIsSettingsDialogOpen(false);
-    }
-  };
-
-  const handleDragEnd = async (event: DragEndEvent) => {
-    const { active, over } = event;
-    if (!over || active.id === over.id) return;
-
-    const oldIndex = contacts.findIndex((c) => c.id === active.id);
-    const newIndex = contacts.findIndex((c) => c.id === over.id);
-    const newContacts = arrayMove(contacts, oldIndex, newIndex);
-    setContacts(newContacts);
-
-    if (!authToken) return;
-
+  const fetchContacts = async () => {
     try {
-      await api.updateContactsOrder(newContacts, authToken);
+      const response = await fetch('https://functions.poehali.dev/aae2a894-b17c-467a-a389-439f259b682a?action=get-contacts');
+      const data = await response.json();
+      setContacts(data.contacts || []);
     } catch (error) {
-      await loadContacts();
+      console.error('Error fetching contacts:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const backgroundStyle = pageSettings.background_image_url 
-    ? { 
-        backgroundImage: `linear-gradient(to bottom right, rgba(139, 92, 246, 0.6), rgba(236, 72, 153, 0.6), rgba(251, 146, 60, 0.6)), url(${pageSettings.background_image_url})`, 
-        backgroundSize: 'cover', 
-        backgroundPosition: 'center' 
-      }
-    : {};
+  const openTelegram = (username: string) => {
+    window.open(`https://t.me/${username}`, '_blank');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center">
+        <div className="animate-pulse flex flex-col items-center gap-4">
+          <div className="w-16 h-16 bg-blue-200 rounded-full"></div>
+          <div className="h-4 w-32 bg-blue-100 rounded"></div>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-orange-200" style={backgroundStyle}>
-      <div className="container mx-auto px-4 py-12">
-        <PageHeader
-          mainTitle={pageSettings.main_title}
-          mainDescription={pageSettings.main_description}
-          isAdminMode={isAdminMode}
-          onLoginClick={() => {}}
-          onSettingsClick={() => setIsSettingsDialogOpen(true)}
-          onPasswordClick={() => setIsPasswordDialogOpen(true)}
-          onLogoutClick={handleLogout}
-          onUsersClick={() => navigate('/users')}
-          isSuperAdmin={userRole === 'superadmin'}
-        />
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-12 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="text-center mb-12 animate-fade-in">
+          <div className="inline-block p-4 bg-blue-500 rounded-full mb-6 shadow-lg animate-scale-in">
+            <Icon name="MessageCircle" size={48} className="text-white" />
+          </div>
+          <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-4">
+            Мои Контакты
+          </h1>
+          <p className="text-gray-600 text-lg">
+            Выберите удобный способ связи
+          </p>
+        </div>
 
-        <ContactsList
-          contacts={contacts}
-          isAdminMode={isAdminMode}
-          onAddContact={handleAddContact}
-          onEditContact={(contact) => {
-            setEditingContact(contact);
-            setIsEditDialogOpen(true);
-          }}
-          onDeleteContact={handleDeleteContact}
-          onDragEnd={handleDragEnd}
-        />
+        <div className="grid gap-6 md:grid-cols-2">
+          {contacts.map((contact, index) => (
+            <Card
+              key={contact.id}
+              className="p-6 hover:shadow-2xl transition-all duration-300 hover:-translate-y-2 cursor-pointer group animate-slide-up border-2 border-transparent hover:border-blue-200"
+              style={{
+                animationDelay: `${index * 100}ms`,
+                animationFillMode: 'both'
+              }}
+              onClick={() => openTelegram(contact.username)}
+            >
+              <div className="flex items-start gap-4">
+                <div 
+                  className="p-4 rounded-2xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-6 shadow-md"
+                  style={{ backgroundColor: contact.color }}
+                >
+                  <Icon 
+                    name={contact.icon as any} 
+                    size={32} 
+                    className="text-white"
+                  />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-2xl font-bold mb-2 text-gray-800 group-hover:text-blue-600 transition-colors">
+                    {contact.title}
+                  </h3>
+                  <p className="text-gray-600 mb-3 text-sm leading-relaxed">
+                    {contact.description}
+                  </p>
+                  <div className="flex items-center gap-2 text-blue-500 font-medium group-hover:gap-3 transition-all">
+                    <Icon name="Send" size={18} />
+                    <span>@{contact.username}</span>
+                    <Icon 
+                      name="ArrowRight" 
+                      size={18} 
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    />
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
 
-
-
-        <EditContactDialog
-          isOpen={isEditDialogOpen}
-          onOpenChange={setIsEditDialogOpen}
-          contact={editingContact}
-          onContactChange={setEditingContact}
-          onSave={handleSaveContact}
-        />
-
-        <ChangePasswordDialog
-          isOpen={isPasswordDialogOpen}
-          onOpenChange={setIsPasswordDialogOpen}
-          oldPassword={oldPassword}
-          setOldPassword={setOldPassword}
-          newPassword={newPassword}
-          setNewPassword={setNewPassword}
-          onChangePassword={handleChangePassword}
-        />
-
-        <PageSettingsDialog
-          isOpen={isSettingsDialogOpen}
-          onOpenChange={setIsSettingsDialogOpen}
-          settings={pageSettings}
-          onSettingsChange={setPageSettings}
-          onSave={handleSaveSettings}
-        />
+        {contacts.length === 0 && (
+          <div className="text-center py-12 animate-fade-in">
+            <Icon name="Inbox" size={64} className="text-gray-300 mx-auto mb-4" />
+            <p className="text-gray-500 text-lg">Контакты пока не добавлены</p>
+          </div>
+        )}
       </div>
     </div>
   );
-}
+};
+
+export default Index;
