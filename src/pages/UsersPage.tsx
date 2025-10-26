@@ -5,24 +5,22 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
-
-const API_URL = 'https://functions.poehali.dev/aae2a894-b17c-467a-a389-439f259b682a';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
-  id: number;
   username: string;
+  password: string;
   role: string;
-  created_at: string | null;
 }
 
 export default function UsersPage() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [creating, setCreating] = useState(false);
-  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
@@ -36,93 +34,58 @@ export default function UsersPage() {
   }, [navigate]);
 
   const fetchUsers = async () => {
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
-    try {
-      const response = await fetch(`${API_URL}?action=get-users`, {
-        headers: { 'X-Auth-Token': token }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users);
-      } else if (response.status === 403) {
-        alert('У вас нет прав доступа к этой странице');
-        navigate('/');
-      }
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
-    } finally {
-      setLoading(false);
+    const stored = localStorage.getItem('users');
+    if (stored) {
+      setUsers(JSON.parse(stored));
     }
+    setLoading(false);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUsername.trim() || !newPassword.trim()) return;
 
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
     setCreating(true);
-    try {
-      const response = await fetch(`${API_URL}?action=create-user`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Auth-Token': token
-        },
-        body: JSON.stringify({
-          username: newUsername.trim(),
-          password: newPassword
-        })
-      });
-
-      if (response.ok) {
-        setNewUsername('');
-        setNewPassword('');
-        fetchUsers();
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Ошибка при создании пользователя');
-      }
-    } catch (error) {
-      console.error('Failed to create user:', error);
-      alert('Ошибка при создании пользователя');
-    } finally {
+    
+    const stored = localStorage.getItem('users');
+    const users = stored ? JSON.parse(stored) : [];
+    
+    if (users.find((u: User) => u.username === newUsername.trim())) {
+      toast({ title: 'Ошибка', description: 'Пользователь уже существует', variant: 'destructive' });
       setCreating(false);
+      return;
     }
+    
+    users.push({
+      username: newUsername.trim(),
+      password: newPassword,
+      role: 'admin'
+    });
+    
+    localStorage.setItem('users', JSON.stringify(users));
+    setNewUsername('');
+    setNewPassword('');
+    fetchUsers();
+    toast({ title: 'Успешно', description: 'Пользователь создан' });
+    setCreating(false);
   };
 
-  const handleDeleteUser = async (userId: number, username: string) => {
+  const handleDeleteUser = async (username: string) => {
     if (!confirm(`Удалить пользователя ${username}?`)) return;
 
-    const token = localStorage.getItem('auth_token');
-    if (!token) return;
-
-    try {
-      const response = await fetch(`${API_URL}?action=delete-user&id=${userId}`, {
-        method: 'DELETE',
-        headers: { 'X-Auth-Token': token }
-      });
-
-      if (response.ok) {
-        fetchUsers();
-      } else {
-        const data = await response.json();
-        alert(data.error || 'Ошибка при удалении пользователя');
-      }
-    } catch (error) {
-      console.error('Failed to delete user:', error);
-      alert('Ошибка при удалении пользователя');
-    }
+    const stored = localStorage.getItem('users');
+    const users = stored ? JSON.parse(stored) : [];
+    const filtered = users.filter((u: User) => u.username !== username);
+    
+    localStorage.setItem('users', JSON.stringify(filtered));
+    fetchUsers();
+    toast({ title: 'Успешно', description: 'Пользователь удалён' });
   };
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
     localStorage.removeItem('user_role');
-    navigate('/login');
+    navigate('/');
   };
 
   if (loading) {
@@ -192,9 +155,9 @@ export default function UsersPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {users.map((user) => (
+                {users.map((user, index) => (
                   <div
-                    key={user.id}
+                    key={index}
                     className="flex items-center justify-between p-4 border rounded-lg bg-gray-50"
                   >
                     <div className="flex-1">
@@ -207,7 +170,7 @@ export default function UsersPage() {
                       <Button
                         variant="destructive"
                         size="sm"
-                        onClick={() => handleDeleteUser(user.id, user.username)}
+                        onClick={() => handleDeleteUser(user.username)}
                       >
                         <Icon name="Trash2" size={16} className="mr-1" />
                         Удалить
