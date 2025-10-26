@@ -39,11 +39,12 @@ interface PageSettings {
   id: number;
   main_title: string;
   main_description: string;
+  background_image_url?: string | null;
 }
 
 export default function Index() {
   const [contacts, setContacts] = useState<Contact[]>([]);
-  const [pageSettings, setPageSettings] = useState<PageSettings>({ id: 1, main_title: 'Мои контакты', main_description: 'Свяжитесь со мной в Telegram' });
+  const [pageSettings, setPageSettings] = useState<PageSettings>({ id: 1, main_title: 'Мои контакты', main_description: 'Свяжитесь со мной в Telegram', background_image_url: null });
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
@@ -284,8 +285,12 @@ export default function Index() {
     }
   };
 
+  const backgroundStyle = pageSettings.background_image_url 
+    ? { backgroundImage: `linear-gradient(to bottom right, rgba(139, 92, 246, 0.6), rgba(236, 72, 153, 0.6), rgba(251, 146, 60, 0.6)), url(${pageSettings.background_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : {};
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400">
+    <div className="min-h-screen bg-gradient-to-br from-purple-400 via-pink-300 to-orange-200" style={backgroundStyle}>
       <div className="container mx-auto px-4 py-12">
         <div className="relative mb-12 animate-fade-in">
           <div className="text-center">
@@ -557,6 +562,16 @@ export default function Index() {
                 onChange={(e) => setPageSettings({ ...pageSettings, main_description: e.target.value })}
                 placeholder="Свяжитесь со мной в Telegram"
               />
+            </div>
+            <div>
+              <Label htmlFor="background-image">URL фонового изображения (необязательно)</Label>
+              <Input 
+                id="background-image"
+                value={pageSettings.background_image_url || ''}
+                onChange={(e) => setPageSettings({ ...pageSettings, background_image_url: e.target.value || null })}
+                placeholder="https://example.com/image.jpg"
+              />
+              <p className="text-sm text-gray-500 mt-1">Оставьте пустым для стандартного градиента</p>
             </div>
             <Button 
               onClick={handleSaveSettings}

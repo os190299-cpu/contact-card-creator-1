@@ -123,20 +123,22 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if action == 'get-settings' and method == 'GET':
-        cur.execute("SELECT id, main_title, main_description FROM page_settings WHERE id = 1")
+        cur.execute("SELECT id, main_title, main_description, background_image_url FROM page_settings WHERE id = 1")
         settings = cur.fetchone()
         
         if settings:
             result = {
                 'id': settings[0],
                 'main_title': settings[1],
-                'main_description': settings[2]
+                'main_description': settings[2],
+                'background_image_url': settings[3]
             }
         else:
             result = {
                 'id': 1,
                 'main_title': 'Мои контакты',
-                'main_description': 'Свяжитесь со мной в Telegram'
+                'main_description': 'Свяжитесь со мной в Telegram',
+                'background_image_url': None
             }
         
         cur.close()
@@ -259,6 +261,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         body_data = json.loads(event.get('body', '{}'))
         main_title = body_data.get('main_title', '').strip()
         main_description = body_data.get('main_description', '').strip()
+        background_image_url = body_data.get('background_image_url')
+        
+        if background_image_url:
+            background_image_url = background_image_url.strip() or None
         
         if not main_title:
             cur.close()
@@ -270,8 +276,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         cur.execute(
-            "INSERT INTO page_settings (id, main_title, main_description) VALUES (1, %s, %s) ON CONFLICT (id) DO UPDATE SET main_title = %s, main_description = %s",
-            (main_title, main_description, main_title, main_description)
+            "INSERT INTO page_settings (id, main_title, main_description, background_image_url) VALUES (1, %s, %s, %s) ON CONFLICT (id) DO UPDATE SET main_title = %s, main_description = %s, background_image_url = %s",
+            (main_title, main_description, background_image_url, main_title, main_description, background_image_url)
         )
         conn.commit()
         cur.close()

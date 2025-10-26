@@ -62,7 +62,6 @@ export default function SortableContactCard({
       ref={setNodeRef}
       style={style}
       className="bg-white/95 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 animate-slide-up border-none"
-      {...(isAdminMode ? { ...attributes, ...listeners } : {})}
     >
       <CardHeader>
         <div className="flex items-center gap-4">
@@ -79,7 +78,9 @@ export default function SortableContactCard({
             <CardDescription className="text-gray-600">{contact.description}</CardDescription>
           </div>
           {isAdminMode && (
-            <Icon name="GripVertical" className="text-gray-400 cursor-grab active:cursor-grabbing" size={24} />
+            <div {...attributes} {...listeners}>
+              <Icon name="GripVertical" className="text-gray-400 cursor-grab active:cursor-grabbing" size={24} />
+            </div>
           )}
         </div>
       </CardHeader>
