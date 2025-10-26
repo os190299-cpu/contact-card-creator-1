@@ -35,7 +35,7 @@ export default function PageHeader({
         </p>
       </div>
       <div className="absolute top-12 right-4">
-        {isAdminMode && (
+        {isAdminMode ? (
           <div className="flex gap-2">
             <Button 
               onClick={onSettingsClick}
@@ -72,6 +72,15 @@ export default function PageHeader({
               Выход
             </Button>
           </div>
+        ) : (
+          <Button 
+            onClick={onLoginClick}
+            variant="outline"
+            className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
+          >
+            <Icon name="LogIn" className="mr-2" size={18} />
+            Вход
+          </Button>
         )}
       </div>
     </div>
