@@ -175,13 +175,22 @@ export default function Index() {
           onDragEnd={handleDragEnd}
         />
 
-        <div className="mt-16 pb-8 text-center">
+        <div className="mt-16 pb-8 text-center space-y-3">
           <button
-            onClick={() => setIsDisclaimerOpen(true)}
-            className="text-xs text-gray-600 hover:text-gray-800 underline opacity-60 hover:opacity-100 transition-opacity"
+            onClick={() => window.open('/chat', '_blank')}
+            className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-full shadow-lg hover:shadow-xl transition-all"
           >
-            Отказ от ответственности
+            <Icon name="MessageCircle" size={20} />
+            Открыть чат
           </button>
+          <div>
+            <button
+              onClick={() => setIsDisclaimerOpen(true)}
+              className="text-xs text-gray-600 hover:text-gray-800 underline opacity-60 hover:opacity-100 transition-opacity"
+            >
+              Отказ от ответственности
+            </button>
+          </div>
         </div>
 
 

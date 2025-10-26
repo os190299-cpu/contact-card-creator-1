@@ -25,7 +25,6 @@ const ChatPage = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [isAdmin, setIsAdmin] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -40,13 +39,6 @@ const ChatPage = () => {
   useEffect(() => {
     const token = localStorage.getItem('chat_token');
     const user = localStorage.getItem('chat_user');
-    const adminToken = localStorage.getItem('auth_token');
-    const role = localStorage.getItem('user_role');
-    
-    if (adminToken && role === 'superadmin') {
-      setIsAdmin(true);
-    }
-    
     if (token && user) {
       setCurrentUser(JSON.parse(user));
       setIsLoggedIn(true);
@@ -170,40 +162,6 @@ const ChatPage = () => {
     }
   };
 
-  const handleDeleteMessage = async (messageId: number) => {
-    const adminToken = localStorage.getItem('auth_token');
-    if (!adminToken) return;
-
-    try {
-      const response = await fetch(`https://functions.poehali.dev/3281d337-5632-4baa-b29e-200b36f10068?message_id=${messageId}`, {
-        method: 'DELETE',
-        headers: {
-          'X-Auth-Token': adminToken,
-        },
-      });
-
-      if (response.ok) {
-        toast({
-          title: 'Успешно',
-          description: 'Сообщение удалено',
-        });
-        loadMessages();
-      } else {
-        toast({
-          title: 'Ошибка',
-          description: 'Не удалось удалить сообщение',
-          variant: 'destructive',
-        });
-      }
-    } catch (error) {
-      toast({
-        title: 'Ошибка',
-        description: 'Не удалось удалить сообщение',
-        variant: 'destructive',
-      });
-    }
-  };
-
   const handleLogout = () => {
     localStorage.removeItem('chat_token');
     localStorage.removeItem('chat_user');
@@ -316,7 +274,7 @@ const ChatPage = () => {
               messages.map((msg) => (
                 <div
                   key={msg.id}
-                  className={`flex gap-2 items-start ${
+                  className={`flex ${
                     msg.user_id === currentUser?.id ? 'justify-end' : 'justify-start'
                   }`}
                 >
@@ -325,7 +283,7 @@ const ChatPage = () => {
                       msg.user_id === currentUser?.id
                         ? 'bg-blue-600 text-white'
                         : 'bg-gray-100 text-gray-900'
-                    } rounded-2xl px-4 py-3 shadow-sm relative group`}
+                    } rounded-2xl px-4 py-3 shadow-sm`}
                   >
                     {msg.user_id !== currentUser?.id && (
                       <div className="font-semibold text-sm mb-1 opacity-80">
@@ -345,15 +303,6 @@ const ChatPage = () => {
                         minute: '2-digit',
                       })}
                     </div>
-                    {isAdmin && (
-                      <button
-                        onClick={() => handleDeleteMessage(msg.id)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-600"
-                        title="Удалить сообщение"
-                      >
-                        <Icon name="X" size={14} />
-                      </button>
-                    )}
                   </div>
                 </div>
               ))
