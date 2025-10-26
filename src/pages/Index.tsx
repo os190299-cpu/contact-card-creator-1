@@ -8,7 +8,6 @@ import { PageSettings } from '@/components/PageSettingsDialog';
 import { useContactsApi } from '@/hooks/useContactsApi';
 import PageHeader from '@/components/PageHeader';
 import ContactsList from '@/components/ContactsList';
-import LoginDialog from '@/components/LoginDialog';
 import EditContactDialog from '@/components/EditContactDialog';
 import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import PageSettingsDialog from '@/components/PageSettingsDialog';
@@ -22,12 +21,9 @@ export default function Index() {
     main_description: 'Свяжитесь со мной в Telegram', 
     background_image_url: null 
   });
-  const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
   const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('user_role'));
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
@@ -61,18 +57,7 @@ export default function Index() {
     }
   };
 
-  const handleLogin = async () => {
-    const result = await api.login(username, password);
-    if (result.success && result.token) {
-      setAuthToken(result.token);
-      localStorage.setItem('auth_token', result.token);
-      if (result.role) {
-        setUserRole(result.role);
-      }
-      setIsAdminMode(true);
-      setIsLoginOpen(false);
-    }
-  };
+
 
   const handleLogout = () => {
     setAuthToken(null);
@@ -166,7 +151,7 @@ export default function Index() {
           mainTitle={pageSettings.main_title}
           mainDescription={pageSettings.main_description}
           isAdminMode={isAdminMode}
-          onLoginClick={() => setIsLoginOpen(true)}
+          onLoginClick={() => {}}
           onSettingsClick={() => setIsSettingsDialogOpen(true)}
           onPasswordClick={() => setIsPasswordDialogOpen(true)}
           onLogoutClick={handleLogout}
@@ -186,15 +171,7 @@ export default function Index() {
           onDragEnd={handleDragEnd}
         />
 
-        <LoginDialog
-          isOpen={isLoginOpen}
-          onOpenChange={setIsLoginOpen}
-          username={username}
-          setUsername={setUsername}
-          password={password}
-          setPassword={setPassword}
-          onLogin={handleLogin}
-        />
+
 
         <EditContactDialog
           isOpen={isEditDialogOpen}

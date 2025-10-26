@@ -3,6 +3,7 @@ import os
 import psycopg2
 import bcrypt
 import jwt
+import time
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
@@ -57,6 +58,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         username = body_data.get('username', '').strip()
         password = body_data.get('password', '')
         
+        ip_address = event.get('requestContext', {}).get('identity', {}).get('sourceIp', 'unknown')
+        
         if not username or not password:
             cur.close()
             conn.close()
@@ -66,10 +69,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({'error': 'Username and password required'})
             }
         
+        cur.execute(
+            "SELECT COUNT(*) FROM login_attempts WHERE ip_address = %s AND attempted_at > NOW() - INTERVAL '15 minutes' AND success = FALSE",
+            (ip_address,)
+        )
+        failed_attempts = cur.fetchone()[0]
+        
+        if failed_attempts >= 5:
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 429,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Too many failed attempts. Try again in 15 minutes'})
+            }
+        
         cur.execute("SELECT id, password_hash, role FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
         
+        time.sleep(0.5)
+        
         if not user:
+            cur.execute(
+                "INSERT INTO login_attempts (ip_address, username, success) VALUES (%s, %s, FALSE)",
+                (ip_address, username)
+            )
+            conn.commit()
             cur.close()
             conn.close()
             return {
@@ -81,6 +106,11 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         password_hash_bytes = user[1].encode('utf-8') if isinstance(user[1], str) else user[1]
         
         if not bcrypt.checkpw(password.encode('utf-8'), password_hash_bytes):
+            cur.execute(
+                "INSERT INTO login_attempts (ip_address, username, success) VALUES (%s, %s, FALSE)",
+                (ip_address, username)
+            )
+            conn.commit()
             cur.close()
             conn.close()
             return {
@@ -88,6 +118,12 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
                 'body': json.dumps({'error': 'Invalid credentials'})
             }
+        
+        cur.execute(
+            "INSERT INTO login_attempts (ip_address, username, success) VALUES (%s, %s, TRUE)",
+            (ip_address, username)
+        )
+        conn.commit()
         
         secret_key = os.environ.get('JWT_SECRET', 'default-secret-key-change-me')
         token = jwt.encode({
