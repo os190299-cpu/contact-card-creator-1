@@ -6,13 +6,22 @@ import jwt
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional
 
-def verify_token(token: Optional[str]) -> Optional[Dict[str, Any]]:
-    '''Verify JWT token and return decoded data'''
+def verify_token(token: Optional[str], conn=None) -> Optional[Dict[str, Any]]:
+    '''Verify JWT token and return decoded data with fresh role from DB'''
     if not token:
         return None
     secret_key = os.environ.get('JWT_SECRET', 'default-secret-key-change-me')
     try:
         decoded = jwt.decode(token, secret_key, algorithms=['HS256'])
+        
+        if conn and decoded.get('user_id'):
+            cur = conn.cursor()
+            cur.execute("SELECT role FROM users WHERE id = %s", (decoded['user_id'],))
+            user = cur.fetchone()
+            cur.close()
+            if user:
+                decoded['role'] = user[0]
+        
         return decoded
     except:
         return None
@@ -342,7 +351,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if action == 'get-users' and method == 'GET':
         auth_token = event.get('headers', {}).get('x-auth-token')
-        decoded = verify_token(auth_token)
+        decoded = verify_token(auth_token, conn)
         
         if not decoded or decoded.get('role') != 'superadmin':
             cur.close()
@@ -377,7 +386,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if action == 'create-user' and method == 'POST':
         auth_token = event.get('headers', {}).get('x-auth-token')
-        decoded = verify_token(auth_token)
+        decoded = verify_token(auth_token, conn)
         
         if not decoded or decoded.get('role') != 'superadmin':
             cur.close()
@@ -430,7 +439,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     if action == 'delete-user' and method == 'DELETE':
         auth_token = event.get('headers', {}).get('x-auth-token')
-        decoded = verify_token(auth_token)
+        decoded = verify_token(auth_token, conn)
         
         if not decoded or decoded.get('role') != 'superadmin':
             cur.close()
