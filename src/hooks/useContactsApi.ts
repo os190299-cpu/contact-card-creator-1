@@ -141,21 +141,28 @@ export function useContactsApi() {
   };
 
   const updateContactsOrder = async (contacts: Contact[], authToken: string): Promise<void> => {
+    console.log('Updating order for contacts:', contacts.map(c => ({ id: c.id, order: c.display_order })));
+    
     try {
-      const promises = contacts.map((contact, index) => 
-        fetch(`${API_BASE_URL}/contacts`, {
+      const promises = contacts.map((contact, index) => {
+        const updatedContact = { ...contact, display_order: index + 1 };
+        console.log('Sending PUT request:', updatedContact);
+        return fetch(`${API_BASE_URL}/contacts`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'X-Auth-Token': authToken
           },
-          body: JSON.stringify({ ...contact, display_order: index + 1 })
-        })
-      );
+          body: JSON.stringify(updatedContact)
+        });
+      });
       
-      await Promise.all(promises);
+      const results = await Promise.all(promises);
+      console.log('All requests completed:', results.map(r => r.status));
+      
       toast({ title: 'Успешно', description: 'Порядок обновлён' });
     } catch (error) {
+      console.error('Failed to update order:', error);
       toast({ title: 'Ошибка', description: 'Не удалось обновить порядок', variant: 'destructive' });
       throw error;
     }
