@@ -42,6 +42,10 @@ export default function Index() {
     loadPageSettings();
     if (authToken) {
       setIsAdminMode(true);
+      const savedRole = localStorage.getItem('user_role');
+      if (savedRole) {
+        setUserRole(savedRole);
+      }
     }
   }, []);
 
