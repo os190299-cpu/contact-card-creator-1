@@ -8,10 +8,12 @@ import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
 
 interface User {
+  id?: number;
   username: string;
-  password: string;
   role: string;
 }
+
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -34,11 +36,25 @@ export default function UsersPage() {
   }, [navigate]);
 
   const fetchUsers = async () => {
-    const stored = localStorage.getItem('users');
-    if (stored) {
-      setUsers(JSON.parse(stored));
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/users`, {
+        headers: {
+          'X-Auth-Token': token || ''
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data);
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось загрузить пользователей', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Ошибка подключения к серверу', variant: 'destructive' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -47,39 +63,67 @@ export default function UsersPage() {
 
     setCreating(true);
     
-    const stored = localStorage.getItem('users');
-    const users = stored ? JSON.parse(stored) : [];
-    
-    if (users.find((u: User) => u.username === newUsername.trim())) {
-      toast({ title: 'Ошибка', description: 'Пользователь уже существует', variant: 'destructive' });
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': token || ''
+        },
+        body: JSON.stringify({
+          username: newUsername.trim(),
+          password: newPassword,
+          role: 'admin'
+        })
+      });
+      
+      if (response.ok) {
+        setNewUsername('');
+        setNewPassword('');
+        await fetchUsers();
+        toast({ title: 'Успешно', description: 'Пользователь создан' });
+      } else {
+        const error = await response.json();
+        toast({ 
+          title: 'Ошибка', 
+          description: error.error || 'Не удалось создать пользователя', 
+          variant: 'destructive' 
+        });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Ошибка подключения к серверу', variant: 'destructive' });
+    } finally {
       setCreating(false);
-      return;
     }
-    
-    users.push({
-      username: newUsername.trim(),
-      password: newPassword,
-      role: 'admin'
-    });
-    
-    localStorage.setItem('users', JSON.stringify(users));
-    setNewUsername('');
-    setNewPassword('');
-    fetchUsers();
-    toast({ title: 'Успешно', description: 'Пользователь создан' });
-    setCreating(false);
   };
 
   const handleDeleteUser = async (username: string) => {
     if (!confirm(`Удалить пользователя ${username}?`)) return;
 
-    const stored = localStorage.getItem('users');
-    const users = stored ? JSON.parse(stored) : [];
-    const filtered = users.filter((u: User) => u.username !== username);
-    
-    localStorage.setItem('users', JSON.stringify(filtered));
-    fetchUsers();
-    toast({ title: 'Успешно', description: 'Пользователь удалён' });
+    try {
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/users?username=${encodeURIComponent(username)}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Auth-Token': token || ''
+        }
+      });
+      
+      if (response.ok) {
+        await fetchUsers();
+        toast({ title: 'Успешно', description: 'Пользователь удалён' });
+      } else {
+        const error = await response.json();
+        toast({ 
+          title: 'Ошибка', 
+          description: error.error || 'Не удалось удалить пользователя', 
+          variant: 'destructive' 
+        });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Ошибка подключения к серверу', variant: 'destructive' });
+    }
   };
 
   const handleLogout = () => {
