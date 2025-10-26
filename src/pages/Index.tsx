@@ -160,6 +160,7 @@ export default function Index() {
           onPasswordClick={() => setIsPasswordDialogOpen(true)}
           onLogoutClick={handleLogout}
           onUsersClick={() => navigate('/users')}
+          onChatUsersClick={() => navigate('/chat-users')}
           isSuperAdmin={userRole === 'superadmin'}
         />
 

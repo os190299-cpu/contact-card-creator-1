@@ -1,4 +1,6 @@
 {
+  "chat-ban": "https://functions.poehali.dev/1c283fc4-7265-4add-8063-9f9ff962c018",
+  "chat-users": "https://functions.poehali.dev/94e458f4-39f1-49d8-a16c-303d025747b9",
   "chat-messages": "https://functions.poehali.dev/3281d337-5632-4baa-b29e-200b36f10068",
   "chat-auth": "https://functions.poehali.dev/fbe2bafc-51f2-478b-aba4-97a5798d5e24",
   "api": "https://functions.poehali.dev/aae2a894-b17c-467a-a389-439f259b682a"

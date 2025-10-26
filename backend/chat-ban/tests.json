@@ -1,0 +1,14 @@
+{
+  "tests": [
+    {
+      "name": "Unauthorized ban request returns 403",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "user_id": 1,
+        "action": "ban"
+      },
+      "expectedStatus": 403
+    }
+  ]
+}
