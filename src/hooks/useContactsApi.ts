@@ -23,7 +23,13 @@ export function useContactsApi() {
     try {
       const response = await fetch(`${API_BASE_URL}/settings`);
       if (!response.ok) throw new Error('Failed to fetch settings');
-      return await response.json();
+      const data = await response.json();
+      return {
+        id: 1,
+        main_title: data.title || 'Мои контакты',
+        main_description: data.description || 'Свяжитесь со мной в Telegram',
+        background_image_url: null
+      };
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить настройки', variant: 'destructive' });
       return null;
