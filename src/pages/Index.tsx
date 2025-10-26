@@ -242,37 +242,46 @@ export default function Index() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400">
       <div className="container mx-auto px-4 py-12">
-        <div className="flex justify-between items-center mb-8 animate-fade-in">
-          <h1 className="text-5xl font-bold text-white drop-shadow-lg">Мои контакты</h1>
-          {!isAdminMode ? (
-            <Button 
-              onClick={() => setIsLoginOpen(true)}
-              variant="outline"
-              className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
-            >
-              <Icon name="Lock" className="mr-2" size={18} />
-              Войти
-            </Button>
-          ) : (
-            <div className="flex gap-2">
+        <div className="relative mb-12 animate-fade-in">
+          <div className="flex-1 text-center">
+            <h1 className="text-6xl font-black text-white drop-shadow-2xl mb-3" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '-0.02em' }}>
+              Мои контакты
+            </h1>
+            <p className="text-white/90 text-lg font-medium drop-shadow-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              Свяжитесь со мной в Telegram
+            </p>
+          </div>
+          <div className="absolute top-12 right-4">
+            {!isAdminMode ? (
               <Button 
-                onClick={() => setIsPasswordDialogOpen(true)}
+                onClick={() => setIsLoginOpen(true)}
                 variant="outline"
                 className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
               >
-                <Icon name="Key" className="mr-2" size={18} />
-                Пароль
+                <Icon name="Lock" className="mr-2" size={18} />
+                Войти
               </Button>
-              <Button 
-                onClick={handleLogout}
-                variant="outline"
-                className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
-              >
-                <Icon name="LogOut" className="mr-2" size={18} />
-                Выход
-              </Button>
-            </div>
-          )}
+            ) : (
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => setIsPasswordDialogOpen(true)}
+                  variant="outline"
+                  className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
+                >
+                  <Icon name="Key" className="mr-2" size={18} />
+                  Пароль
+                </Button>
+                <Button 
+                  onClick={handleLogout}
+                  variant="outline"
+                  className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
+                >
+                  <Icon name="LogOut" className="mr-2" size={18} />
+                  Выход
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
 
         {isAdminMode && (
