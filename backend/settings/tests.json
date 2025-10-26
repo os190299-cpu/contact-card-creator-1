@@ -1,0 +1,24 @@
+{
+  "tests": [
+    {
+      "name": "Get page settings",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200,
+      "expectedBody": {
+        "main_title": "string"
+      },
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Update settings requires auth",
+      "method": "PUT",
+      "path": "/",
+      "body": {
+        "main_title": "New Title"
+      },
+      "expectedStatus": 401,
+      "bodyMatcher": "partial"
+    }
+  ]
+}

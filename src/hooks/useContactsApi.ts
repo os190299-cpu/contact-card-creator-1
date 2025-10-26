@@ -2,145 +2,162 @@ import { useToast } from '@/hooks/use-toast';
 import { Contact } from '@/components/EditContactDialog';
 import { PageSettings } from '@/components/PageSettingsDialog';
 
-const DEFAULT_CONTACTS: Contact[] = [
-  {
-    id: 1,
-    title: 'Telegram',
-    description: 'Свяжитесь со мной',
-    telegram_link: 'https://t.me/username',
-    display_order: 1
-  }
-];
-
-const DEFAULT_SETTINGS: PageSettings = {
-  id: 1,
-  main_title: 'Мои контакты',
-  main_description: 'Свяжитесь со мной в Telegram',
-  background_image_url: null
-};
-
-const DEFAULT_USERS = [
-  { username: 'admin', password: 'admin123', role: 'superadmin' }
-];
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export function useContactsApi() {
   const { toast } = useToast();
 
-  const initializeStorage = () => {
-    if (!localStorage.getItem('contacts')) {
-      localStorage.setItem('contacts', JSON.stringify(DEFAULT_CONTACTS));
-    }
-    if (!localStorage.getItem('page_settings')) {
-      localStorage.setItem('page_settings', JSON.stringify(DEFAULT_SETTINGS));
-    }
-    if (!localStorage.getItem('users')) {
-      localStorage.setItem('users', JSON.stringify(DEFAULT_USERS));
-    }
-  };
-
   const fetchContacts = async (): Promise<Contact[]> => {
-    initializeStorage();
-    const stored = localStorage.getItem('contacts');
-    return stored ? JSON.parse(stored) : DEFAULT_CONTACTS;
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts`);
+      if (!response.ok) throw new Error('Failed to fetch contacts');
+      return await response.json();
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить контакты', variant: 'destructive' });
+      return [];
+    }
   };
 
   const fetchPageSettings = async (): Promise<PageSettings | null> => {
-    initializeStorage();
-    const stored = localStorage.getItem('page_settings');
-    return stored ? JSON.parse(stored) : DEFAULT_SETTINGS;
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings`);
+      if (!response.ok) throw new Error('Failed to fetch settings');
+      return await response.json();
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось загрузить настройки', variant: 'destructive' });
+      return null;
+    }
   };
 
   const login = async (username: string, password: string): Promise<{ success: boolean; token?: string; role?: string }> => {
-    initializeStorage();
-    const stored = localStorage.getItem('users');
-    const users = stored ? JSON.parse(stored) : DEFAULT_USERS;
-    
-    const user = users.find((u: any) => u.username === username && u.password === password);
-    
-    if (user) {
-      const token = `token_${Date.now()}`;
-      localStorage.setItem('user_role', user.role);
+    try {
+      const response = await fetch(`${API_BASE_URL}/auth`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      
+      if (!response.ok) {
+        toast({ title: 'Ошибка', description: 'Неверные данные', variant: 'destructive' });
+        return { success: false };
+      }
+      
+      const data = await response.json();
+      localStorage.setItem('user_role', data.role);
       toast({ title: 'Успешно', description: 'Вы вошли в систему' });
-      return { success: true, token, role: user.role };
-    } else {
-      toast({ title: 'Ошибка', description: 'Неверные данные', variant: 'destructive' });
+      return { success: true, token: data.token, role: data.role };
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Ошибка подключения', variant: 'destructive' });
       return { success: false };
     }
   };
 
   const updateContact = async (contact: Contact, authToken: string): Promise<boolean> => {
-    const stored = localStorage.getItem('contacts');
-    const contacts = stored ? JSON.parse(stored) : [];
-    const index = contacts.findIndex((c: Contact) => c.id === contact.id);
-    
-    if (index !== -1) {
-      contacts[index] = contact;
-      localStorage.setItem('contacts', JSON.stringify(contacts));
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': authToken
+        },
+        body: JSON.stringify(contact)
+      });
+      
+      if (!response.ok) throw new Error('Failed to update contact');
+      
       toast({ title: 'Успешно', description: 'Контакт обновлён' });
       return true;
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось обновить контакт', variant: 'destructive' });
+      return false;
     }
-    
-    toast({ title: 'Ошибка', description: 'Контакт не найден', variant: 'destructive' });
-    return false;
   };
 
   const addContact = async (newContact: Partial<Contact>, authToken: string): Promise<boolean> => {
-    const stored = localStorage.getItem('contacts');
-    const contacts = stored ? JSON.parse(stored) : [];
-    const newId = contacts.length > 0 ? Math.max(...contacts.map((c: Contact) => c.id)) + 1 : 1;
-    
-    const contact: Contact = {
-      id: newId,
-      title: newContact.title || 'Новый контакт',
-      description: newContact.description || 'Описание',
-      telegram_link: newContact.telegram_link || 'https://t.me/username',
-      display_order: newContact.display_order || contacts.length + 1
-    };
-    
-    contacts.push(contact);
-    localStorage.setItem('contacts', JSON.stringify(contacts));
-    toast({ title: 'Успешно', description: 'Контакт добавлен' });
-    return true;
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': authToken
+        },
+        body: JSON.stringify(newContact)
+      });
+      
+      if (!response.ok) throw new Error('Failed to add contact');
+      
+      toast({ title: 'Успешно', description: 'Контакт добавлен' });
+      return true;
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось добавить контакт', variant: 'destructive' });
+      return false;
+    }
   };
 
   const deleteContact = async (id: number, authToken: string): Promise<boolean> => {
-    const stored = localStorage.getItem('contacts');
-    const contacts = stored ? JSON.parse(stored) : [];
-    const filtered = contacts.filter((c: Contact) => c.id !== id);
-    
-    localStorage.setItem('contacts', JSON.stringify(filtered));
-    toast({ title: 'Успешно', description: 'Контакт удалён' });
-    return true;
+    try {
+      const response = await fetch(`${API_BASE_URL}/contacts?id=${id}`, {
+        method: 'DELETE',
+        headers: {
+          'X-Auth-Token': authToken
+        }
+      });
+      
+      if (!response.ok) throw new Error('Failed to delete contact');
+      
+      toast({ title: 'Успешно', description: 'Контакт удалён' });
+      return true;
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось удалить контакт', variant: 'destructive' });
+      return false;
+    }
   };
 
   const changePassword = async (oldPassword: string, newPassword: string, authToken: string): Promise<boolean> => {
-    const role = localStorage.getItem('user_role');
-    const stored = localStorage.getItem('users');
-    const users = stored ? JSON.parse(stored) : DEFAULT_USERS;
-    
-    const userIndex = users.findIndex((u: any) => u.role === role && u.password === oldPassword);
-    
-    if (userIndex !== -1) {
-      users[userIndex].password = newPassword;
-      localStorage.setItem('users', JSON.stringify(users));
-      toast({ title: 'Успешно', description: 'Пароль изменён' });
-      return true;
-    }
-    
-    toast({ title: 'Ошибка', description: 'Неверный старый пароль', variant: 'destructive' });
+    toast({ title: 'Информация', description: 'Смена пароля временно недоступна' });
     return false;
   };
 
   const updateSettings = async (settings: PageSettings, authToken: string): Promise<boolean> => {
-    localStorage.setItem('page_settings', JSON.stringify(settings));
-    toast({ title: 'Успешно', description: 'Настройки сохранены' });
-    return true;
+    try {
+      const response = await fetch(`${API_BASE_URL}/settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': authToken
+        },
+        body: JSON.stringify(settings)
+      });
+      
+      if (!response.ok) throw new Error('Failed to update settings');
+      
+      toast({ title: 'Успешно', description: 'Настройки сохранены' });
+      return true;
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось сохранить настройки', variant: 'destructive' });
+      return false;
+    }
   };
 
   const updateContactsOrder = async (contacts: Contact[], authToken: string): Promise<void> => {
-    const updated = contacts.map((c, index) => ({ ...c, display_order: index + 1 }));
-    localStorage.setItem('contacts', JSON.stringify(updated));
-    toast({ title: 'Успешно', description: 'Порядок обновлён' });
+    try {
+      const promises = contacts.map((contact, index) => 
+        fetch(`${API_BASE_URL}/contacts`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Auth-Token': authToken
+          },
+          body: JSON.stringify({ ...contact, display_order: index + 1 })
+        })
+      );
+      
+      await Promise.all(promises);
+      toast({ title: 'Успешно', description: 'Порядок обновлён' });
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось обновить порядок', variant: 'destructive' });
+      throw error;
+    }
   };
 
   return {
