@@ -244,12 +244,8 @@ export default function Index() {
       <div className="container mx-auto px-4 py-12">
         <div className="relative mb-12 animate-fade-in">
           <div className="flex-1 text-center">
-            <h1 className="text-6xl font-black text-white drop-shadow-2xl mb-3" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '-0.02em' }}>
-              Мои контакты
-            </h1>
-            <p className="text-white/90 text-lg font-medium drop-shadow-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
-              Свяжитесь со мной в Telegram
-            </p>
+            <h1 className="text-5xl font-bold text-white drop-shadow-lg mx-0 px-0 text-left" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '-0.02em' }}>Slivki Ghetto</h1>
+            <p className="text-white/90 text-lg font-medium drop-shadow-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>Актуалы черного рынка</p>
           </div>
           <div className="absolute top-12 right-4">
             {!isAdminMode ? (
