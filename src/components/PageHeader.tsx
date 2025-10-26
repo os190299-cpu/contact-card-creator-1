@@ -10,7 +10,6 @@ interface PageHeaderProps {
   onPasswordClick: () => void;
   onLogoutClick: () => void;
   onUsersClick?: () => void;
-  onChatUsersClick?: () => void;
   isSuperAdmin?: boolean;
 }
 
@@ -23,7 +22,6 @@ export default function PageHeader({
   onPasswordClick,
   onLogoutClick,
   onUsersClick,
-  onChatUsersClick,
   isSuperAdmin = false
 }: PageHeaderProps) {
   return (
@@ -63,16 +61,6 @@ export default function PageHeader({
               >
                 <Icon name="Users" className="mr-2" size={18} />
                 Пользователи
-              </Button>
-            )}
-            {isSuperAdmin && onChatUsersClick && (
-              <Button 
-                onClick={onChatUsersClick}
-                variant="outline"
-                className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
-              >
-                <Icon name="MessageCircle" className="mr-2" size={18} />
-                Чат
               </Button>
             )}
             <Button 
