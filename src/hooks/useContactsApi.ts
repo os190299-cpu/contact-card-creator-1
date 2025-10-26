@@ -11,7 +11,8 @@ export function useContactsApi() {
     try {
       const response = await fetch(`${API_BASE_URL}/contacts`);
       if (!response.ok) throw new Error('Failed to fetch contacts');
-      return await response.json();
+      const contacts = await response.json();
+      return contacts.sort((a: Contact, b: Contact) => (a.display_order || 0) - (b.display_order || 0));
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить контакты', variant: 'destructive' });
       return [];
