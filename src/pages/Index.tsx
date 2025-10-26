@@ -61,8 +61,6 @@ export default function Index() {
     }
   };
 
-
-
   const handleLogout = () => {
     setAuthToken(null);
     setUserRole(null);
@@ -79,6 +77,16 @@ export default function Index() {
       await loadContacts();
       setIsEditDialogOpen(false);
       setEditingContact(null);
+      toast({
+        title: 'Успех',
+        description: 'Контакт обновлён'
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось обновить контакт',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -93,6 +101,16 @@ export default function Index() {
     const success = await api.addContact(newContact, authToken);
     if (success) {
       await loadContacts();
+      toast({
+        title: 'Успех',
+        description: 'Контакт добавлен'
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось добавить контакт',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -101,16 +119,46 @@ export default function Index() {
     const success = await api.deleteContact(id, authToken);
     if (success) {
       await loadContacts();
+      toast({
+        title: 'Успех',
+        description: 'Контакт удалён'
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось удалить контакт',
+        variant: 'destructive'
+      });
     }
   };
 
   const handleChangePassword = async () => {
     if (!authToken) return;
+    
+    if (!oldPassword.trim() || !newPassword.trim()) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните все поля',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     const success = await api.changePassword(oldPassword, newPassword, authToken);
     if (success) {
       setIsPasswordDialogOpen(false);
       setOldPassword('');
       setNewPassword('');
+      toast({
+        title: 'Успех',
+        description: 'Пароль изменён'
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: 'Неверный старый пароль',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -119,6 +167,16 @@ export default function Index() {
     const success = await api.updateSettings(pageSettings, authToken);
     if (success) {
       setIsSettingsDialogOpen(false);
+      toast({
+        title: 'Успех',
+        description: 'Настройки сохранены'
+      });
+    } else {
+      toast({
+        title: 'Ошибка',
+        description: 'Не удалось сохранить настройки',
+        variant: 'destructive'
+      });
     }
   };
 
@@ -155,7 +213,7 @@ export default function Index() {
           mainTitle={pageSettings.main_title}
           mainDescription={pageSettings.main_description}
           isAdminMode={isAdminMode}
-          onLoginClick={() => {}}
+          onLoginClick={() => navigate("/auth/secure-login-portal")}
           onSettingsClick={() => setIsSettingsDialogOpen(true)}
           onPasswordClick={() => setIsPasswordDialogOpen(true)}
           onLogoutClick={handleLogout}
@@ -183,8 +241,6 @@ export default function Index() {
             Отказ от ответственности
           </button>
         </div>
-
-
 
         <EditContactDialog
           isOpen={isEditDialogOpen}
@@ -225,29 +281,39 @@ export default function Index() {
                 </p>
               </div>
               <div>
-                <h3 className="font-bold text-lg mb-2">2. Источники и точность</h3>
+                <h3 className="font-bold text-lg mb-2">2. Отсутствие связи с противоправной деятельностью</h3>
                 <p className="text-gray-700">
-                  Информация (включая юзернеймы, описания и публичные ссылки) собирается из общедоступных источников. Мы не гарантируем полноту, точность, достоверность или актуальность этих данных. Любые утверждения о противоправной деятельности основаны на найденных в публичном пространстве материалах и помечены как «не подтверждённые», если фактическая проверка отсутствует.
+                  Владелец сайта категорически не связан с какой-либо деятельностью по распространению, продаже или употреблению наркотических средств. Любые упоминания терминов или понятий, связанных с данной сферой, имеют исключительно информационный характер.
                 </p>
               </div>
               <div>
-                <h3 className="font-bold text-lg mb-2">3. Ограничение ответственности</h3>
+                <h3 className="font-bold text-lg mb-2">3. Законопослушность</h3>
                 <p className="text-gray-700">
-                  Владельцы и администраторы сайта не несут ответственности за любые убытки, юридические последствия или иные действия, возникшие в результате использования информации, размещённой на сайте. Использование материалов сайта для совершения противоправных действий запрещено.
+                  Владелец сайта подчёркивает своё полное соблюдение действующего законодательства Российской Федерации и международных норм. Сайт не преследует цель способствовать нарушению закона.
                 </p>
               </div>
               <div>
-                <h3 className="font-bold text-lg mb-2">4. Личные данные и репутация</h3>
+                <h3 className="font-bold text-lg mb-2">4. Отказ от ответственности за действия третьих лиц</h3>
                 <p className="text-gray-700">
-                  Если вы считаете, что опубликованная информация содержит ваши персональные данные, ложна, порочит честь и достоинство или нарушает иные права — отправьте запрос на удаление/исправление. Мы рассматриваем обращения и можем удалить или пометить сомнительную информацию после проверки.
+                  Владелец сайта не несёт ответственности за действия третьих лиц, которые могут использовать информацию, размещённую на сайте, в противоправных целях. Любое использование ресурса в нарушение законодательства является исключительной ответственностью таких лиц.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-2">5. Призыв к законопослушанию</h3>
+                <p className="text-gray-700">
+                  Владелец сайта настоятельно призывает всех посетителей соблюдать законодательство и избегать любых форм участия в незаконной деятельности.
+                </p>
+              </div>
+              <div>
+                <h3 className="font-bold text-lg mb-2">6. Контакты для связи</h3>
+                <p className="text-gray-700">
+                  Если у вас есть вопросы или жалобы относительно контента, размещённого на сайте, вы можете связаться с владельцем через указанные на сайте контактные данные.
                 </p>
               </div>
             </div>
           </DialogContent>
         </Dialog>
       </div>
-
-
     </div>
   );
 }
