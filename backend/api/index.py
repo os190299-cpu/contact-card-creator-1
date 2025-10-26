@@ -211,7 +211,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         update_fields = []
         params = []
         
-        for field in ['title', 'description', 'telegram_link', 'display_order']:
+        for field in ['title', 'description', 'telegram_link', 'display_order', 'avatar_url']:
             if field in body_data:
                 update_fields.append(f'{field} = %s')
                 params.append(body_data[field])
