@@ -350,7 +350,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if action == 'get-users' and method == 'GET':
-        auth_token = event.get('headers', {}).get('x-auth-token')
+        headers = event.get('headers', {})
+        auth_token = headers.get('x-auth-token') or headers.get('X-Auth-Token')
         decoded = verify_token(auth_token, conn)
         
         if not decoded or decoded.get('role') != 'superadmin':
@@ -385,7 +386,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if action == 'create-user' and method == 'POST':
-        auth_token = event.get('headers', {}).get('x-auth-token')
+        headers = event.get('headers', {})
+        auth_token = headers.get('x-auth-token') or headers.get('X-Auth-Token')
         decoded = verify_token(auth_token, conn)
         
         if not decoded or decoded.get('role') != 'superadmin':
@@ -438,7 +440,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if action == 'delete-user' and method == 'DELETE':
-        auth_token = event.get('headers', {}).get('x-auth-token')
+        headers = event.get('headers', {})
+        auth_token = headers.get('x-auth-token') or headers.get('X-Auth-Token')
         decoded = verify_token(auth_token, conn)
         
         if not decoded or decoded.get('role') != 'superadmin':

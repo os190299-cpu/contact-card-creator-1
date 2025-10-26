@@ -26,19 +26,12 @@ export default function UsersPage() {
 
   useEffect(() => {
     const token = localStorage.getItem('auth_token');
-    const role = localStorage.getItem('user_role');
     
     if (!token) {
-      navigate('/login');
+      navigate('/');
       return;
     }
 
-    if (role !== 'superadmin') {
-      navigate('/admin');
-      return;
-    }
-
-    setCurrentUserRole(role);
     fetchUsers();
   }, [navigate]);
 
@@ -54,6 +47,9 @@ export default function UsersPage() {
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users);
+      } else if (response.status === 403) {
+        alert('У вас нет прав доступа к этой странице');
+        navigate('/');
       }
     } catch (error) {
       console.error('Failed to fetch users:', error);
