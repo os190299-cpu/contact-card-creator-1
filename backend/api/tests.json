@@ -19,6 +19,12 @@
         "token": "string"
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get page settings",
+      "method": "GET",
+      "path": "/?action=get-settings",
+      "expectedStatus": 200
     }
   ]
 }
