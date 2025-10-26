@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "name": "Login returns error for invalid credentials",
+      "method": "POST",
+      "path": "/",
+      "body": {
+        "action": "login",
+        "username": "nonexistentuser999",
+        "password": "wrongpass999"
+      },
+      "expectedStatus": 401
+    }
+  ]
+}
