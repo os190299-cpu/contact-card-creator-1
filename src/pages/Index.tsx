@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useToast } from '@/hooks/use-toast';
 import { DragEndEvent } from '@dnd-kit/core';
 import { arrayMove } from '@dnd-kit/sortable';
@@ -13,6 +14,7 @@ import ChangePasswordDialog from '@/components/ChangePasswordDialog';
 import PageSettingsDialog from '@/components/PageSettingsDialog';
 
 export default function Index() {
+  const navigate = useNavigate();
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [pageSettings, setPageSettings] = useState<PageSettings>({ 
     id: 1, 
@@ -23,6 +25,7 @@ export default function Index() {
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
+  const [userRole, setUserRole] = useState<string | null>(localStorage.getItem('user_role'));
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
@@ -59,6 +62,9 @@ export default function Index() {
     if (result.success && result.token) {
       setAuthToken(result.token);
       localStorage.setItem('auth_token', result.token);
+      if (result.role) {
+        setUserRole(result.role);
+      }
       setIsAdminMode(true);
       setIsLoginOpen(false);
     }
@@ -66,7 +72,9 @@ export default function Index() {
 
   const handleLogout = () => {
     setAuthToken(null);
+    setUserRole(null);
     localStorage.removeItem('auth_token');
+    localStorage.removeItem('user_role');
     setIsAdminMode(false);
     toast({ title: 'Выход', description: 'Вы вышли из системы' });
   };
@@ -158,6 +166,8 @@ export default function Index() {
           onSettingsClick={() => setIsSettingsDialogOpen(true)}
           onPasswordClick={() => setIsPasswordDialogOpen(true)}
           onLogoutClick={handleLogout}
+          onUsersClick={() => navigate('/users')}
+          isSuperAdmin={userRole === 'superadmin'}
         />
 
         <ContactsList

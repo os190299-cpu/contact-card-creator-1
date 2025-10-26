@@ -57,7 +57,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'body': json.dumps({'error': 'Username and password required'})
             }
         
-        cur.execute("SELECT id, password_hash FROM users WHERE username = %s", (username,))
+        cur.execute("SELECT id, password_hash, role FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
         
         if not user:
@@ -84,6 +84,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         token = jwt.encode({
             'user_id': user[0],
             'username': username,
+            'role': user[2],
             'exp': datetime.utcnow() + timedelta(hours=24)
         }, secret_key, algorithm='HS256')
         
@@ -93,7 +94,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'statusCode': 200,
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'isBase64Encoded': False,
-            'body': json.dumps({'token': token, 'username': username})
+            'body': json.dumps({'token': token, 'username': username, 'role': user[2]})
         }
     
     if action == 'get-contacts' and method == 'GET':
@@ -337,6 +338,152 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'isBase64Encoded': False,
             'body': json.dumps({'message': 'Password changed successfully'})
+        }
+    
+    if action == 'get-users' and method == 'GET':
+        auth_token = event.get('headers', {}).get('x-auth-token')
+        decoded = verify_token(auth_token)
+        
+        if not decoded or decoded.get('role') != 'superadmin':
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 403,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Access denied'})
+            }
+        
+        cur.execute("SELECT id, username, role, created_at FROM users ORDER BY id ASC")
+        users = cur.fetchall()
+        
+        result = [
+            {
+                'id': u[0],
+                'username': u[1],
+                'role': u[2],
+                'created_at': u[3].isoformat() if u[3] else None
+            }
+            for u in users
+        ]
+        
+        cur.close()
+        conn.close()
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'isBase64Encoded': False,
+            'body': json.dumps({'users': result})
+        }
+    
+    if action == 'create-user' and method == 'POST':
+        auth_token = event.get('headers', {}).get('x-auth-token')
+        decoded = verify_token(auth_token)
+        
+        if not decoded or decoded.get('role') != 'superadmin':
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 403,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Access denied'})
+            }
+        
+        body_data = json.loads(event.get('body', '{}'))
+        username = body_data.get('username', '').strip()
+        password = body_data.get('password', '')
+        
+        if not username or not password:
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Username and password required'})
+            }
+        
+        cur.execute("SELECT id FROM users WHERE username = %s", (username,))
+        if cur.fetchone():
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 409,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Username already exists'})
+            }
+        
+        password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cur.execute(
+            "INSERT INTO users (username, password_hash, role) VALUES (%s, %s, 'admin') RETURNING id",
+            (username, password_hash)
+        )
+        user_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            'statusCode': 201,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'isBase64Encoded': False,
+            'body': json.dumps({'id': user_id, 'message': 'User created'})
+        }
+    
+    if action == 'delete-user' and method == 'DELETE':
+        auth_token = event.get('headers', {}).get('x-auth-token')
+        decoded = verify_token(auth_token)
+        
+        if not decoded or decoded.get('role') != 'superadmin':
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 403,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Access denied'})
+            }
+        
+        params = event.get('queryStringParameters', {})
+        user_id = params.get('id')
+        
+        if not user_id:
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'User ID required'})
+            }
+        
+        cur.execute("SELECT role FROM users WHERE id = %s", (user_id,))
+        user = cur.fetchone()
+        
+        if not user:
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 404,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'User not found'})
+            }
+        
+        if user[0] == 'superadmin':
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 403,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Cannot delete superadmin'})
+            }
+        
+        cur.execute("DELETE FROM users WHERE id = %s", (user_id,))
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'isBase64Encoded': False,
+            'body': json.dumps({'message': 'User deleted'})
         }
     
     cur.close()

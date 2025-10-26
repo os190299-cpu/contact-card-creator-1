@@ -9,6 +9,8 @@ interface PageHeaderProps {
   onSettingsClick: () => void;
   onPasswordClick: () => void;
   onLogoutClick: () => void;
+  onUsersClick?: () => void;
+  isSuperAdmin?: boolean;
 }
 
 export default function PageHeader({
@@ -18,7 +20,9 @@ export default function PageHeader({
   onLoginClick,
   onSettingsClick,
   onPasswordClick,
-  onLogoutClick
+  onLogoutClick,
+  onUsersClick,
+  isSuperAdmin = false
 }: PageHeaderProps) {
   return (
     <div className="relative mb-12 animate-fade-in">
@@ -58,6 +62,16 @@ export default function PageHeader({
               <Icon name="Key" className="mr-2" size={18} />
               Пароль
             </Button>
+            {isSuperAdmin && onUsersClick && (
+              <Button 
+                onClick={onUsersClick}
+                variant="outline"
+                className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
+              >
+                <Icon name="Users" className="mr-2" size={18} />
+                Пользователи
+              </Button>
+            )}
             <Button 
               onClick={onLogoutClick}
               variant="outline"

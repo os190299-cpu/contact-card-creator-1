@@ -29,7 +29,7 @@ export function useContactsApi() {
     }
   };
 
-  const login = async (username: string, password: string): Promise<{ success: boolean; token?: string }> => {
+  const login = async (username: string, password: string): Promise<{ success: boolean; token?: string; role?: string }> => {
     try {
       const res = await fetch(`${API_URL}?action=login`, {
         method: 'POST',
@@ -39,8 +39,11 @@ export function useContactsApi() {
       const data = await res.json();
       
       if (res.ok) {
+        if (data.role) {
+          localStorage.setItem('user_role', data.role);
+        }
         toast({ title: 'Успешно', description: 'Вы вошли в систему' });
-        return { success: true, token: data.token };
+        return { success: true, token: data.token, role: data.role };
       } else {
         toast({ title: 'Ошибка', description: data.error || 'Неверные данные', variant: 'destructive' });
         return { success: false };
