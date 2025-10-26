@@ -1,12 +1,27 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy
+} from '@dnd-kit/sortable';
+import SortableContactCard from '@/components/SortableContactCard';
 
 const API_URL = 'https://functions.poehali.dev/aae2a894-b17c-467a-a389-439f259b682a';
 
@@ -16,6 +31,8 @@ interface Contact {
   description: string;
   telegram_link: string;
   display_order: number;
+  avatar_url?: string | null;
+  telegram_username?: string | null;
 }
 
 export default function Index() {
@@ -31,6 +48,13 @@ export default function Index() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const { toast } = useToast();
+
+  const sensors = useSensors(
+    useSensor(PointerSensor),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
 
   useEffect(() => {
     fetchContacts();
@@ -184,10 +208,41 @@ export default function Index() {
     }
   };
 
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = contacts.findIndex((c) => c.id === active.id);
+    const newIndex = contacts.findIndex((c) => c.id === over.id);
+
+    const newContacts = arrayMove(contacts, oldIndex, newIndex);
+    setContacts(newContacts);
+
+    if (!authToken) return;
+
+    try {
+      for (let i = 0; i < newContacts.length; i++) {
+        await fetch(`${API_URL}?action=update-contact`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Auth-Token': authToken
+          },
+          body: JSON.stringify({ id: newContacts[i].id, display_order: i + 1 })
+        });
+      }
+      toast({ title: 'Успешно', description: 'Порядок обновлён' });
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Не удалось обновить порядок', variant: 'destructive' });
+      await fetchContacts();
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400">
       <div className="container mx-auto px-4 py-12">
-        <div className="flex justify-between items-center mb-12 animate-fade-in">
+        <div className="flex justify-between items-center mb-8 animate-fade-in">
           <h1 className="text-5xl font-bold text-white drop-shadow-lg">Мои контакты</h1>
           {!isAdminMode ? (
             <Button 
@@ -220,53 +275,41 @@ export default function Index() {
           )}
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {contacts.map((contact, index) => (
-            <Card 
-              key={contact.id} 
-              className="bg-white/95 backdrop-blur-sm shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 animate-slide-up border-none"
-              style={{ animationDelay: `${index * 100}ms` }}
-            >
-              <CardHeader>
-                <CardTitle className="text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  {contact.title}
-                </CardTitle>
-                <CardDescription className="text-gray-600">{contact.description}</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  onClick={() => window.open(contact.telegram_link, '_blank')}
-                  className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
-                >
-                  <Icon name="Send" className="mr-2" size={18} />
-                  Открыть Telegram
-                </Button>
-                
-                {isAdminMode && (
-                  <div className="flex gap-2">
-                    <Button 
-                      onClick={() => {
-                        setEditingContact(contact);
-                        setIsEditDialogOpen(true);
-                      }}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      <Icon name="Edit" size={18} />
-                    </Button>
-                    <Button 
-                      onClick={() => handleDeleteContact(contact.id)}
-                      variant="outline"
-                      className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      <Icon name="Trash2" size={18} />
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        {isAdminMode && (
+          <div className="mb-4 text-center animate-fade-in">
+            <p className="text-white/80 text-sm">
+              <Icon name="Info" className="inline mr-1" size={16} />
+              Перетаскивайте карточки для изменения порядка
+            </p>
+          </div>
+        )}
+
+        <DndContext 
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext 
+            items={contacts.map(c => c.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {contacts.map((contact, index) => (
+                <SortableContactCard
+                  key={contact.id}
+                  contact={contact}
+                  index={index}
+                  isAdminMode={isAdminMode}
+                  onEdit={(c) => {
+                    setEditingContact(c);
+                    setIsEditDialogOpen(true);
+                  }}
+                  onDelete={handleDeleteContact}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
 
         {isAdminMode && (
           <div className="mt-8 flex justify-center animate-fade-in">
@@ -351,6 +394,24 @@ export default function Index() {
                   id="edit-link"
                   value={editingContact.telegram_link}
                   onChange={(e) => setEditingContact({ ...editingContact, telegram_link: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-username">Telegram username (для аватарки)</Label>
+                <Input 
+                  id="edit-username"
+                  value={editingContact.telegram_username || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, telegram_username: e.target.value })}
+                  placeholder="username"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-avatar">URL аватарки (необязательно)</Label>
+                <Input 
+                  id="edit-avatar"
+                  value={editingContact.avatar_url || ''}
+                  onChange={(e) => setEditingContact({ ...editingContact, avatar_url: e.target.value })}
+                  placeholder="https://..."
                 />
               </div>
               <div>

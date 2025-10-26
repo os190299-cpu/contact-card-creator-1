@@ -60,7 +60,18 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         cur.execute("SELECT id, password_hash FROM users WHERE username = %s", (username,))
         user = cur.fetchone()
         
-        if not user or not bcrypt.checkpw(password.encode('utf-8'), user[1].encode('utf-8')):
+        if not user:
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 401,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Invalid credentials'})
+            }
+        
+        password_hash_bytes = user[1].encode('utf-8') if isinstance(user[1], str) else user[1]
+        
+        if not bcrypt.checkpw(password.encode('utf-8'), password_hash_bytes):
             cur.close()
             conn.close()
             return {
@@ -86,7 +97,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     if action == 'get-contacts' and method == 'GET':
-        cur.execute("SELECT id, title, description, telegram_link, display_order FROM telegram_contacts ORDER BY display_order ASC")
+        cur.execute("SELECT id, title, description, telegram_link, display_order, avatar_url, telegram_username FROM telegram_contacts ORDER BY display_order ASC")
         contacts = cur.fetchall()
         
         result = [
@@ -95,7 +106,9 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'title': c[1],
                 'description': c[2],
                 'telegram_link': c[3],
-                'display_order': c[4]
+                'display_order': c[4],
+                'avatar_url': c[5],
+                'telegram_username': c[6]
             }
             for c in contacts
         ]
