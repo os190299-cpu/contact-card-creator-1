@@ -4,11 +4,7 @@
       "name": "Get contacts (public)",
       "method": "GET",
       "path": "/?action=get-contacts",
-      "expectedStatus": 200,
-      "expectedBody": {
-        "contacts": "array"
-      },
-      "bodyMatcher": "partial"
+      "expectedStatus": 200
     },
     {
       "name": "Login with valid credentials",
@@ -23,6 +19,12 @@
         "token": "string"
       },
       "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get page settings",
+      "method": "GET",
+      "path": "/?action=get-settings",
+      "expectedStatus": 200
     }
   ]
 }

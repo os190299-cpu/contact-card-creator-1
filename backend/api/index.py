@@ -122,6 +122,32 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'body': json.dumps({'contacts': result})
         }
     
+    if action == 'get-settings' and method == 'GET':
+        cur.execute("SELECT id, main_title, main_description FROM page_settings WHERE id = 1")
+        settings = cur.fetchone()
+        
+        if settings:
+            result = {
+                'id': settings[0],
+                'main_title': settings[1],
+                'main_description': settings[2]
+            }
+        else:
+            result = {
+                'id': 1,
+                'main_title': 'Мои контакты',
+                'main_description': 'Свяжитесь со мной в Telegram'
+            }
+        
+        cur.close()
+        conn.close()
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'isBase64Encoded': False,
+            'body': json.dumps({'settings': result})
+        }
+    
     headers = event.get('headers', {})
     token = headers.get('X-Auth-Token') or headers.get('x-auth-token')
     user_data = verify_token(token)
@@ -227,6 +253,35 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
             'isBase64Encoded': False,
             'body': json.dumps({'message': 'Contact deleted'})
+        }
+    
+    if action == 'update-settings' and method == 'PUT':
+        body_data = json.loads(event.get('body', '{}'))
+        main_title = body_data.get('main_title', '').strip()
+        main_description = body_data.get('main_description', '').strip()
+        
+        if not main_title:
+            cur.close()
+            conn.close()
+            return {
+                'statusCode': 400,
+                'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+                'body': json.dumps({'error': 'Title required'})
+            }
+        
+        cur.execute(
+            "INSERT INTO page_settings (id, main_title, main_description) VALUES (1, %s, %s) ON CONFLICT (id) DO UPDATE SET main_title = %s, main_description = %s",
+            (main_title, main_description, main_title, main_description)
+        )
+        conn.commit()
+        cur.close()
+        conn.close()
+        
+        return {
+            'statusCode': 200,
+            'headers': {'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*'},
+            'isBase64Encoded': False,
+            'body': json.dumps({'message': 'Settings updated'})
         }
     
     if action == 'change-password' and method == 'POST':

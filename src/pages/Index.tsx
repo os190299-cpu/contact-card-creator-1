@@ -35,8 +35,15 @@ interface Contact {
   telegram_username?: string | null;
 }
 
+interface PageSettings {
+  id: number;
+  main_title: string;
+  main_description: string;
+}
+
 export default function Index() {
   const [contacts, setContacts] = useState<Contact[]>([]);
+  const [pageSettings, setPageSettings] = useState<PageSettings>({ id: 1, main_title: 'Мои контакты', main_description: 'Свяжитесь со мной в Telegram' });
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isAdminMode, setIsAdminMode] = useState(false);
   const [authToken, setAuthToken] = useState<string | null>(localStorage.getItem('auth_token'));
@@ -45,6 +52,7 @@ export default function Index() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
+  const [isSettingsDialogOpen, setIsSettingsDialogOpen] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const { toast } = useToast();
@@ -58,6 +66,7 @@ export default function Index() {
 
   useEffect(() => {
     fetchContacts();
+    fetchPageSettings();
     if (authToken) {
       setIsAdminMode(true);
     }
@@ -70,6 +79,18 @@ export default function Index() {
       setContacts(data.contacts || []);
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить контакты', variant: 'destructive' });
+    }
+  };
+
+  const fetchPageSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}?action=get-settings`);
+      const data = await res.json();
+      if (data.settings) {
+        setPageSettings(data.settings);
+      }
+    } catch (error) {
+      // Use default settings
     }
   };
 
@@ -208,6 +229,30 @@ export default function Index() {
     }
   };
 
+  const handleSaveSettings = async () => {
+    if (!authToken) return;
+
+    try {
+      const res = await fetch(`${API_URL}?action=update-settings`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Auth-Token': authToken
+        },
+        body: JSON.stringify(pageSettings)
+      });
+
+      if (res.ok) {
+        setIsSettingsDialogOpen(false);
+        toast({ title: 'Успешно', description: 'Настройки сохранены' });
+      } else {
+        toast({ title: 'Ошибка', description: 'Не удалось сохранить', variant: 'destructive' });
+      }
+    } catch (error) {
+      toast({ title: 'Ошибка', description: 'Проблема с подключением', variant: 'destructive' });
+    }
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -243,9 +288,13 @@ export default function Index() {
     <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-500 to-orange-400">
       <div className="container mx-auto px-4 py-12">
         <div className="relative mb-12 animate-fade-in">
-          <div className="flex-1 text-center">
-            <h1 className="text-5xl font-bold text-white drop-shadow-lg mx-0 px-0 text-left" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '-0.02em' }}>Slivki Ghetto</h1>
-            <p className="text-white/90 text-lg font-medium drop-shadow-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>Актуалы черного рынка</p>
+          <div className="text-center">
+            <h1 className="text-6xl font-black text-white drop-shadow-2xl mb-3" style={{ fontFamily: 'Montserrat, sans-serif', letterSpacing: '-0.02em' }}>
+              {pageSettings.main_title}
+            </h1>
+            <p className="text-white/90 text-lg font-medium drop-shadow-lg" style={{ fontFamily: 'Montserrat, sans-serif' }}>
+              {pageSettings.main_description}
+            </p>
           </div>
           <div className="absolute top-12 right-4">
             {!isAdminMode ? (
@@ -259,6 +308,14 @@ export default function Index() {
               </Button>
             ) : (
               <div className="flex gap-2">
+                <Button 
+                  onClick={() => setIsSettingsDialogOpen(true)}
+                  variant="outline"
+                  className="bg-white/20 backdrop-blur-sm text-white border-white/40 hover:bg-white/30"
+                >
+                  <Icon name="Settings" className="mr-2" size={18} />
+                  Настройки
+                </Button>
                 <Button 
                   onClick={() => setIsPasswordDialogOpen(true)}
                   variant="outline"
@@ -470,6 +527,42 @@ export default function Index() {
               className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
             >
               Изменить пароль
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isSettingsDialogOpen} onOpenChange={setIsSettingsDialogOpen}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Настройки страницы
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="main-title">Заголовок</Label>
+              <Input 
+                id="main-title"
+                value={pageSettings.main_title}
+                onChange={(e) => setPageSettings({ ...pageSettings, main_title: e.target.value })}
+                placeholder="Мои контакты"
+              />
+            </div>
+            <div>
+              <Label htmlFor="main-description">Описание</Label>
+              <Input 
+                id="main-description"
+                value={pageSettings.main_description}
+                onChange={(e) => setPageSettings({ ...pageSettings, main_description: e.target.value })}
+                placeholder="Свяжитесь со мной в Telegram"
+              />
+            </div>
+            <Button 
+              onClick={handleSaveSettings}
+              className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            >
+              Сохранить
             </Button>
           </div>
         </DialogContent>

@@ -84,38 +84,40 @@ export default function SortableContactCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-3">
-        <Button 
-          onClick={() => window.open(contact.telegram_link, '_blank')}
-          className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg"
-        >
-          <Icon name="Send" className="mr-2" size={18} />
-          Открыть Telegram
-        </Button>
-        
-        {isAdminMode && (
-          <div className="flex gap-2">
-            <Button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit(contact);
-              }}
-              variant="outline"
-              className="flex-1"
-            >
-              <Icon name="Edit" size={18} />
-            </Button>
-            <Button 
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(contact.id);
-              }}
-              variant="outline"
-              className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50"
-            >
-              <Icon name="Trash2" size={18} />
-            </Button>
-          </div>
-        )}
+        <div className="flex flex-col gap-3">
+          <Button 
+            onClick={() => window.open(contact.telegram_link, '_blank')}
+            className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg h-11"
+          >
+            <Icon name="Send" className="mr-2" size={18} />
+            Открыть Telegram
+          </Button>
+          
+          {isAdminMode && (
+            <div className="flex gap-2">
+              <Button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onEdit(contact);
+                }}
+                variant="outline"
+                className="flex-1 h-11"
+              >
+                <Icon name="Edit" size={18} />
+              </Button>
+              <Button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete(contact.id);
+                }}
+                variant="outline"
+                className="flex-1 text-red-600 hover:text-red-700 hover:bg-red-50 h-11"
+              >
+                <Icon name="Trash2" size={18} />
+              </Button>
+            </div>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
