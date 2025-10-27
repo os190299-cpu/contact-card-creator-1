@@ -20,11 +20,17 @@ def hash_password(password: str) -> str:
     """Hash password using SHA256"""
     return hashlib.sha256(password.encode()).hexdigest()
 
-def verify_auth(event: Dict[str, Any]) -> bool:
-    """Verify superadmin auth token"""
+def verify_auth(event: Dict[str, Any], conn) -> bool:
+    """Verify auth token from sessions table"""
     headers = event.get('headers', {})
     auth_token = headers.get('X-Auth-Token') or headers.get('x-auth-token')
-    return bool(auth_token)
+    if not auth_token:
+        return False
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT user_id FROM sessions WHERE token = %s AND expires_at > NOW()', (auth_token,))
+    result = cur.fetchone()
+    cur.close()
+    return result is not None
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     method: str = event.get('httpMethod', 'GET')
@@ -47,17 +53,19 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         'Access-Control-Allow-Origin': '*'
     }
     
-    if not verify_auth(event):
-        return {
-            'statusCode': 401,
-            'headers': headers,
-            'body': json.dumps({'error': 'Unauthorized'}),
-            'isBase64Encoded': False
-        }
-    
     try:
+        conn = get_db_connection()
+        
+        if not verify_auth(event, conn):
+            conn.close()
+            return {
+                'statusCode': 401,
+                'headers': headers,
+                'body': json.dumps({'error': 'Unauthorized'}),
+                'isBase64Encoded': False
+            }
+        
         if method == 'GET':
-            conn = get_db_connection()
             cur = conn.cursor(cursor_factory=RealDictCursor)
             cur.execute('SELECT id, username, role FROM users ORDER BY id')
             users = cur.fetchall()
@@ -78,6 +86,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             role = body_data.get('role', 'admin')
             
             if not username or not password:
+                conn.close()
                 return {
                     'statusCode': 400,
                     'headers': headers,
@@ -85,7 +94,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
             
-            conn = get_db_connection()
             cur = conn.cursor(cursor_factory=RealDictCursor)
             
             cur.execute('SELECT id FROM users WHERE username = %s', (username,))
@@ -121,6 +129,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             username = query_params.get('username', '')
             
             if not username:
+                conn.close()
                 return {
                     'statusCode': 400,
                     'headers': headers,
@@ -128,7 +137,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                     'isBase64Encoded': False
                 }
             
-            conn = get_db_connection()
             cur = conn.cursor(cursor_factory=RealDictCursor)
             
             cur.execute('SELECT role FROM users WHERE username = %s', (username,))
@@ -157,6 +165,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
         
         else:
+            conn.close()
             return {
                 'statusCode': 405,
                 'headers': headers,
@@ -165,6 +174,10 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             }
     
     except Exception as e:
+        try:
+            conn.close()
+        except:
+            pass
         return {
             'statusCode': 500,
             'headers': headers,
