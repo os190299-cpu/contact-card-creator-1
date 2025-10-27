@@ -6,10 +6,10 @@ Returns: HTTP response with user data or operation status
 
 import json
 import os
-import hashlib
 from typing import Dict, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import bcrypt
 
 def get_db_connection():
     """Create database connection"""
@@ -17,8 +17,8 @@ def get_db_connection():
     return psycopg2.connect(database_url)
 
 def hash_password(password: str) -> str:
-    """Hash password using SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash password using bcrypt"""
+    return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt(rounds=12)).decode('utf-8')
 
 def verify_auth(event: Dict[str, Any]) -> bool:
     """Verify superadmin auth token"""
