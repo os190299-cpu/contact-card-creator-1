@@ -31,7 +31,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type',
+                'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -53,6 +53,64 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         body_data = json.loads(event.get('body', '{}'))
+        query_params = event.get('queryStringParameters', {})
+        action = query_params.get('action', 'login') if query_params else 'login'
+        
+        # Handle password change
+        if action == 'change-password':
+            auth_token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
+            if not auth_token:
+                return {
+                    'statusCode': 401,
+                    'headers': headers,
+                    'body': json.dumps({'error': 'Unauthorized'}),
+                    'isBase64Encoded': False
+                }
+            
+            old_password = body_data.get('old_password', '')
+            new_password = body_data.get('new_password', '')
+            
+            if not old_password or not new_password:
+                return {
+                    'statusCode': 400,
+                    'headers': headers,
+                    'body': json.dumps({'error': 'Old and new password required'}),
+                    'isBase64Encoded': False
+                }
+            
+            conn = get_db_connection()
+            cur = conn.cursor(cursor_factory=RealDictCursor)
+            
+            # Get user by token (using superadmin for now since we don't store tokens)
+            old_password_hash = hash_password(old_password)
+            cur.execute('SELECT id, username FROM users WHERE password_hash = %s', (old_password_hash,))
+            user = cur.fetchone()
+            
+            if not user:
+                cur.close()
+                conn.close()
+                return {
+                    'statusCode': 401,
+                    'headers': headers,
+                    'body': json.dumps({'error': 'Invalid old password'}),
+                    'isBase64Encoded': False
+                }
+            
+            # Update password
+            new_password_hash = hash_password(new_password)
+            cur.execute('UPDATE users SET password_hash = %s WHERE id = %s', (new_password_hash, user['id']))
+            conn.commit()
+            cur.close()
+            conn.close()
+            
+            return {
+                'statusCode': 200,
+                'headers': headers,
+                'body': json.dumps({'success': True}),
+                'isBase64Encoded': False
+            }
+        
+        # Handle login
         username = body_data.get('username', '')
         password = body_data.get('password', '')
         
