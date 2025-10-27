@@ -14,7 +14,7 @@ from psycopg2.extras import RealDictCursor
 
 def get_db_connection():
     """Create database connection using simple query protocol"""
-    database_url = os.environ.get('DATABASE_URL', 'postgresql://contacts_user:SecurePass123!@localhost/contacts_db')
+    database_url = os.environ.get('DATABASE_URL')
     return psycopg2.connect(database_url)
 
 def hash_password(password: str) -> str:

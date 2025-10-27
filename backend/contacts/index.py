@@ -7,12 +7,18 @@ Returns: HTTP response with contacts data or status messages
 import json
 import os
 from typing import Dict, Any, List, Optional
+from datetime import datetime
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
+def json_serial(obj):
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    raise TypeError(f"Type {type(obj)} not serializable")
+
 def get_db_connection():
     """Create database connection using simple query protocol"""
-    database_url = os.environ.get('DATABASE_URL', 'postgresql://contacts_user:SecurePass123!@localhost/contacts_db')
+    database_url = os.environ.get('DATABASE_URL')
     return psycopg2.connect(database_url)
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
@@ -51,7 +57,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             return {
                 'statusCode': 200,
                 'headers': headers,
-                'body': json.dumps([dict(row) for row in contacts]),
+                'body': json.dumps([dict(row) for row in contacts], default=json_serial),
                 'isBase64Encoded': False
             }
         

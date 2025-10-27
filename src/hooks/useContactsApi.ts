@@ -1,15 +1,20 @@
 import { useToast } from '@/hooks/use-toast';
 import { Contact } from '@/components/EditContactDialog';
 import { PageSettings } from '@/components/PageSettingsDialog';
+import func2url from '../../backend/func2url.json';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URLS = {
+  contacts: func2url.contacts,
+  settings: func2url.settings,
+  auth: func2url.auth
+};
 
 export function useContactsApi() {
   const { toast } = useToast();
 
   const fetchContacts = async (): Promise<Contact[]> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts`);
+      const response = await fetch(API_URLS.contacts);
       if (!response.ok) throw new Error('Failed to fetch contacts');
       const contacts = await response.json();
       return contacts.sort((a: Contact, b: Contact) => (a.display_order || 0) - (b.display_order || 0));
@@ -21,14 +26,14 @@ export function useContactsApi() {
 
   const fetchPageSettings = async (): Promise<PageSettings | null> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/settings`);
+      const response = await fetch(API_URLS.settings);
       if (!response.ok) throw new Error('Failed to fetch settings');
       const data = await response.json();
       return {
-        id: 1,
-        main_title: data.title || 'Мои контакты',
-        main_description: data.description || 'Свяжитесь со мной в Telegram',
-        background_image_url: null
+        id: data.id || 1,
+        main_title: data.main_title || 'Мои контакты',
+        main_description: data.main_description || 'Свяжитесь со мной в Telegram',
+        background_image_url: data.background_image_url || null
       };
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить настройки', variant: 'destructive' });
@@ -38,7 +43,7 @@ export function useContactsApi() {
 
   const login = async (username: string, password: string): Promise<{ success: boolean; token?: string; role?: string }> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth`, {
+      const response = await fetch(API_URLS.auth, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -61,7 +66,7 @@ export function useContactsApi() {
 
   const updateContact = async (contact: Contact, authToken: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts`, {
+      const response = await fetch(API_URLS.contacts, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -82,7 +87,7 @@ export function useContactsApi() {
 
   const addContact = async (newContact: Partial<Contact>, authToken: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts`, {
+      const response = await fetch(API_URLS.contacts, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -103,7 +108,7 @@ export function useContactsApi() {
 
   const deleteContact = async (id: number, authToken: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/contacts?id=${id}`, {
+      const response = await fetch(`${API_URLS.contacts}?id=${id}`, {
         method: 'DELETE',
         headers: {
           'X-Auth-Token': authToken
@@ -127,7 +132,7 @@ export function useContactsApi() {
 
   const updateSettings = async (settings: PageSettings, authToken: string): Promise<boolean> => {
     try {
-      const response = await fetch(`${API_BASE_URL}/settings`, {
+      const response = await fetch(API_URLS.settings, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -153,7 +158,7 @@ export function useContactsApi() {
       const promises = contacts.map((contact, index) => {
         const updatedContact = { ...contact, display_order: index + 1 };
         console.log('Sending PUT request:', updatedContact);
-        return fetch(`${API_BASE_URL}/contacts`, {
+        return fetch(API_URLS.contacts, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
