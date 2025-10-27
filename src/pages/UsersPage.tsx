@@ -6,14 +6,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import Icon from '@/components/ui/icon';
 import { useToast } from '@/hooks/use-toast';
+import { API_URLS } from '@/config/api';
 
 interface User {
   id?: number;
   username: string;
   role: string;
 }
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 export default function UsersPage() {
   const navigate = useNavigate();
@@ -38,7 +37,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await fetch(API_URLS.users, {
         headers: {
           'X-Auth-Token': token || ''
         }
@@ -65,7 +64,7 @@ export default function UsersPage() {
     
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch(`${API_BASE_URL}/users`, {
+      const response = await fetch(API_URLS.users, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
