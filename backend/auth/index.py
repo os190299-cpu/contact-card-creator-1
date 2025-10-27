@@ -6,20 +6,20 @@ Returns: HTTP response with auth token and user role
 
 import json
 import os
-import hashlib
 import secrets
 from typing import Dict, Any
 import psycopg2
 from psycopg2.extras import RealDictCursor
+import bcrypt
 
 def get_db_connection():
     """Create database connection using simple query protocol"""
     database_url = os.environ.get('DATABASE_URL')
     return psycopg2.connect(database_url)
 
-def hash_password(password: str) -> str:
-    """Hash password using SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify password against bcrypt hash"""
+    return bcrypt.checkpw(password.encode('utf-8'), password_hash.encode('utf-8'))
 
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     method: str = event.get('httpMethod', 'POST')
@@ -52,7 +52,15 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         }
     
     try:
-        body_data = json.loads(event.get('body', '{}'))
+        body = event.get('body', '{}')
+        # Handle both string and dict body
+        if isinstance(body, str):
+            if not body:
+                body = '{}'
+            body_data = json.loads(body)
+        else:
+            body_data = body if body else {}
+        
         username = body_data.get('username', '')
         password = body_data.get('password', '')
         
@@ -67,14 +75,13 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
         conn = get_db_connection()
         cur = conn.cursor(cursor_factory=RealDictCursor)
         
-        password_hash = hash_password(password)
         cur.execute(
-            'SELECT id, username, role FROM users WHERE username = %s AND password_hash = %s',
-            (username, password_hash)
+            'SELECT id, username, role, password_hash FROM users WHERE username = %s',
+            (username,)
         )
         user = cur.fetchone()
         
-        if not user:
+        if not user or not verify_password(password, user['password_hash']):
             cur.close()
             conn.close()
             return {

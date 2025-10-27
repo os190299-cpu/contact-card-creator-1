@@ -1,0 +1,11 @@
+{
+  "tests": [
+    {
+      "name": "Generate hash for password",
+      "method": "GET",
+      "path": "/?password=test123",
+      "expectedStatus": 200,
+      "bodyMatcher": "partial"
+    }
+  ]
+}
