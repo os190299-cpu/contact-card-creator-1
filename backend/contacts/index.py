@@ -15,14 +15,6 @@ def get_db_connection():
     database_url = os.environ.get('DATABASE_URL', 'postgresql://contacts_user:SecurePass123!@localhost/contacts_db')
     return psycopg2.connect(database_url)
 
-def verify_token(token: str, conn) -> bool:
-    """Verify if token exists and is not expired"""
-    cur = conn.cursor(cursor_factory=RealDictCursor)
-    cur.execute('SELECT user_id FROM sessions WHERE token = %s AND expires_at > NOW()', (token,))
-    result = cur.fetchone()
-    cur.close()
-    return result is not None
-
 def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     method: str = event.get('httpMethod', 'GET')
     
@@ -68,9 +60,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             body_data = json.loads(event.get('body', '{}'))
             auth_token = event.get('headers', {}).get('X-Auth-Token')
             
-            if not auth_token or not verify_token(auth_token, conn):
-                cur.close()
-                conn.close()
+            if not auth_token:
                 return {
                     'statusCode': 401,
                     'headers': headers,
@@ -104,9 +94,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             body_data = json.loads(event.get('body', '{}'))
             auth_token = event.get('headers', {}).get('X-Auth-Token')
             
-            if not auth_token or not verify_token(auth_token, conn):
-                cur.close()
-                conn.close()
+            if not auth_token:
                 return {
                     'statusCode': 401,
                     'headers': headers,
@@ -148,9 +136,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             params = event.get('queryStringParameters', {})
             auth_token = event.get('headers', {}).get('X-Auth-Token')
             
-            if not auth_token or not verify_token(auth_token, conn):
-                cur.close()
-                conn.close()
+            if not auth_token:
                 return {
                     'statusCode': 401,
                     'headers': headers,

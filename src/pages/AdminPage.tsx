@@ -226,7 +226,7 @@ const AdminPage = () => {
     if (!token) return;
 
     try {
-      const response = await fetch('http://217.156.65.145/auth?action=change-password', {
+      const response = await fetch('https://functions.poehali.dev/aae2a894-b17c-467a-a389-439f259b682a?action=change-password', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

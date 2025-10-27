@@ -9,7 +9,6 @@ import os
 import hashlib
 import secrets
 from typing import Dict, Any
-from datetime import datetime, timedelta
 import psycopg2
 from psycopg2.extras import RealDictCursor
 
@@ -32,7 +31,7 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
             'headers': {
                 'Access-Control-Allow-Origin': '*',
                 'Access-Control-Allow-Methods': 'POST, OPTIONS',
-                'Access-Control-Allow-Headers': 'Content-Type, X-Auth-Token',
+                'Access-Control-Allow-Headers': 'Content-Type',
                 'Access-Control-Max-Age': '86400'
             },
             'body': '',
@@ -54,86 +53,6 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
     
     try:
         body_data = json.loads(event.get('body', '{}'))
-        query_params = event.get('queryStringParameters', {})
-        action = query_params.get('action', 'login') if query_params else 'login'
-        
-        # Handle password change
-        if action == 'change-password':
-            auth_token = event.get('headers', {}).get('X-Auth-Token') or event.get('headers', {}).get('x-auth-token')
-            if not auth_token:
-                return {
-                    'statusCode': 401,
-                    'headers': headers,
-                    'body': json.dumps({'error': 'Unauthorized'}),
-                    'isBase64Encoded': False
-                }
-            
-            old_password = body_data.get('old_password', '')
-            new_password = body_data.get('new_password', '')
-            
-            if not old_password or not new_password:
-                return {
-                    'statusCode': 400,
-                    'headers': headers,
-                    'body': json.dumps({'error': 'Old and new password required'}),
-                    'isBase64Encoded': False
-                }
-            
-            conn = get_db_connection()
-            cur = conn.cursor(cursor_factory=RealDictCursor)
-            
-            # Get user by token from sessions table
-            cur.execute(
-                'SELECT user_id FROM sessions WHERE token = %s AND expires_at > NOW()',
-                (auth_token,)
-            )
-            session = cur.fetchone()
-            
-            if not session:
-                cur.close()
-                conn.close()
-                return {
-                    'statusCode': 401,
-                    'headers': headers,
-                    'body': json.dumps({'error': 'Invalid or expired token'}),
-                    'isBase64Encoded': False
-                }
-            
-            user_id = session['user_id']
-            
-            # Verify old password
-            old_password_hash = hash_password(old_password)
-            cur.execute(
-                'SELECT id FROM users WHERE id = %s AND password_hash = %s',
-                (user_id, old_password_hash)
-            )
-            user = cur.fetchone()
-            
-            if not user:
-                cur.close()
-                conn.close()
-                return {
-                    'statusCode': 401,
-                    'headers': headers,
-                    'body': json.dumps({'error': 'Invalid old password'}),
-                    'isBase64Encoded': False
-                }
-            
-            # Update password
-            new_password_hash = hash_password(new_password)
-            cur.execute('UPDATE users SET password_hash = %s WHERE id = %s', (new_password_hash, user_id))
-            conn.commit()
-            cur.close()
-            conn.close()
-            
-            return {
-                'statusCode': 200,
-                'headers': headers,
-                'body': json.dumps({'success': True}),
-                'isBase64Encoded': False
-            }
-        
-        # Handle login
         username = body_data.get('username', '')
         password = body_data.get('password', '')
         
@@ -165,15 +84,8 @@ def handler(event: Dict[str, Any], context: Any) -> Dict[str, Any]:
                 'isBase64Encoded': False
             }
         
-        # Generate auth token and save to sessions
+        # Generate auth token
         auth_token = secrets.token_urlsafe(32)
-        expires_at = datetime.now() + timedelta(days=30)
-        
-        cur.execute(
-            'INSERT INTO sessions (user_id, token, expires_at) VALUES (%s, %s, %s)',
-            (user['id'], auth_token, expires_at)
-        )
-        conn.commit()
         
         cur.close()
         conn.close()

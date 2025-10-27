@@ -121,27 +121,8 @@ export function useContactsApi() {
   };
 
   const changePassword = async (oldPassword: string, newPassword: string, authToken: string): Promise<boolean> => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/auth?action=change-password`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Auth-Token': authToken
-        },
-        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
-      });
-      
-      if (!response.ok) {
-        toast({ title: 'Ошибка', description: 'Неверный старый пароль', variant: 'destructive' });
-        return false;
-      }
-      
-      toast({ title: 'Успешно', description: 'Пароль изменен' });
-      return true;
-    } catch (error) {
-      toast({ title: 'Ошибка', description: 'Не удалось изменить пароль', variant: 'destructive' });
-      return false;
-    }
+    toast({ title: 'Информация', description: 'Смена пароля временно недоступна' });
+    return false;
   };
 
   const updateSettings = async (settings: PageSettings, authToken: string): Promise<boolean> => {
