@@ -279,6 +279,12 @@ const AdminPage = () => {
               <Icon name="Home" size={18} className="mr-2" />
               На сайт
             </Button>
+            {localStorage.getItem('user_role') === 'superadmin' && (
+              <Button variant="outline" onClick={() => navigate('/audit-log')}>
+                <Icon name="Activity" size={18} className="mr-2" />
+                Журнал действий
+              </Button>
+            )}
             <Button variant="outline" onClick={() => setPasswordDialog(true)}>
               <Icon name="Key" size={18} className="mr-2" />
               Сменить пароль
