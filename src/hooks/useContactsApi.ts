@@ -17,7 +17,18 @@ export function useContactsApi() {
       const response = await fetch(API_URLS.contacts);
       if (!response.ok) throw new Error('Failed to fetch contacts');
       const contacts = await response.json();
-      return contacts.sort((a: Contact, b: Contact) => (a.display_order || 0) - (b.display_order || 0));
+      
+      // Разделяем description на description и avatar_url
+      const processedContacts = contacts.map((c: any) => {
+        const parts = c.description.split('|||');
+        return {
+          ...c,
+          description: parts[0] || '',
+          avatar_url: parts[1] || null
+        };
+      });
+      
+      return processedContacts.sort((a: Contact, b: Contact) => (a.display_order || 0) - (b.display_order || 0));
     } catch (error) {
       toast({ title: 'Ошибка', description: 'Не удалось загрузить контакты', variant: 'destructive' });
       return [];
@@ -66,13 +77,21 @@ export function useContactsApi() {
 
   const updateContact = async (contact: Contact, authToken: string): Promise<boolean> => {
     try {
+      // Склеиваем description и avatar_url обратно
+      const payload = {
+        ...contact,
+        description: contact.avatar_url 
+          ? `${contact.description}|||${contact.avatar_url}` 
+          : contact.description
+      };
+      
       const response = await fetch(API_URLS.contacts, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           'X-Auth-Token': authToken
         },
-        body: JSON.stringify(contact)
+        body: JSON.stringify(payload)
       });
       
       if (!response.ok) throw new Error('Failed to update contact');
@@ -156,15 +175,22 @@ export function useContactsApi() {
     
     try {
       const promises = contacts.map((contact, index) => {
-        const updatedContact = { ...contact, display_order: index + 1 };
-        console.log('Sending PUT request:', updatedContact);
+        // Склеиваем description и avatar_url обратно
+        const payload = {
+          ...contact,
+          display_order: index + 1,
+          description: contact.avatar_url 
+            ? `${contact.description}|||${contact.avatar_url}` 
+            : contact.description
+        };
+        console.log('Sending PUT request:', payload);
         return fetch(API_URLS.contacts, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
             'X-Auth-Token': authToken
           },
-          body: JSON.stringify(updatedContact)
+          body: JSON.stringify(payload)
         });
       });
       
